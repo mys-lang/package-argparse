@@ -13,17 +13,17 @@ Examples
    from argparse import Parser
 
    def main(argv: [string]):
-    parser = Parser("tar")
-    parser.add_option("--verbose",
-                      short="-v",
-                      multiple_occurrences=True,
-                      help="Verbose output.")
-    parser.add_positional("file",
-                          help="A file.")
+       parser = Parser("tar")
+       parser.add_option("--verbose",
+                         short="-v",
+                         multiple_occurrences=True,
+                         help="Verbose output.")
+       parser.add_positional("file",
+                             help="A file.")
 
-    args = parser.parse(argv)
+       args = parser.parse(argv)
 
-    print(args)
+       print(args)
 
 .. |buildstatus| image:: https://travis-ci.com/eerimoq/mys-argparse.svg?branch=master
 .. _buildstatus: https://travis-ci.com/eerimoq/mys-argparse
