@@ -1,0 +1,443 @@
+class _Option:
+
+    name: string
+    short: string
+    default: string
+    multiple_occurrences: bool
+    help: string
+    takes_value: bool
+
+    def __init__(self,
+                 name: string,
+                 short: string,
+                 default: string,
+                 multiple_occurrences: bool,
+                 help: string):
+        self.name = name
+        self.short = short
+        self.default = default
+        self.takes_value = False
+
+        if default is not None:
+            self.takes_value = True
+
+        self.multiple_occurrences = multiple_occurrences
+        self.help = help
+
+    def is_flag(self) -> bool:
+        return self.is_single_flag() or self.is_multiple_flag()
+
+    def is_single_flag(self) -> bool:
+        return not self.takes_value and not self.multiple_occurrences
+
+    def is_multiple_flag(self) -> bool:
+        return not self.takes_value and self.multiple_occurrences
+
+    def is_single_value(self) -> bool:
+        return self.takes_value and not self.multiple_occurrences
+
+    def is_multiple_value(self) -> bool:
+        return self.takes_value and self.multiple_occurrences
+
+class _Positional:
+
+    name: string
+    multiple_occurrences: bool
+    help: string
+
+    def is_single_value(self) -> bool:
+        return not self.multiple_occurrences
+
+class _Reader:
+
+    args: [string]
+    pos: u32
+
+    def get(self) -> string:
+        if self._pos == len(self._args):
+            return None
+
+        arg = self._args[self._pos]
+        self._pos += 1
+
+        return arg
+
+    def rewind(self):
+        self._pos -= 1
+
+class Args:
+
+    _options: {string: u32}
+    _single_values: {string: string}
+    _multiple_values: {string: [string]}
+    _subcommand: (string, Args)
+
+    def is_present(self, arg: string) -> bool:
+        """Returns true if given argument is present, false otherwise.
+
+        """
+
+        return self.occurrences_of(arg) > 0
+
+    def occurrences_of(self, arg: string) -> u32:
+        """Returns the number of times given argument was given.
+
+        """
+
+        if arg in self._options:
+            return self._options[arg]
+        elif arg in self._single_values:
+            if self._values[arg] is None:
+                return 0
+            else:
+                return 1
+        elif arg in self._multiple_values:
+            return len(self._single_values[arg])
+        else:
+            raise Exception(f"invalid argument {arg}")
+
+    def value_of(self, arg: string) -> string:
+        """Returns the value of given argument. Raises an error if given
+        argument does not take a value or can be given more than once.
+
+        """
+
+        return self._single_values[arg]
+
+    def values_of(self, arg: string) -> [string]:
+        """Returns a list of values of given argument. Raises an error if
+        given argument does not take a value or can only be given
+        once.
+
+        """
+
+        return self._multiple_values[arg]
+
+    def subcommand(self) -> (string, Args):
+        """Returns a tuple of found subcommand and its arguments.
+
+        """
+
+        return self._subcommand
+
+class Parser:
+
+    name: string
+    help: string
+    version: string
+    _parent: Parser
+    _options: [_Option]
+    _positionals: [_Positional]
+    _subcommands: [Parser]
+
+    def __init__(self,
+                 name: string,
+                 help: string = None,
+                 version: string = None,
+                 parent: Parser = None):
+        self.name = name
+        self.help = help
+        self.version = version
+        self._parent = parent
+        self._options = []
+        self._positionals = []
+        self._subcommands = []
+        self.add_option("--help",
+                        short="-h",
+                        help="Show this help.")
+
+        if version is not None:
+            self.add_option("--version",
+                            help="Show version infomation.")
+
+    def add_option(self,
+                   name: string,
+                   short: string = None,
+                   default: string = None,
+                   multiple_occurrences: bool = False,
+                   help: string = None):
+        """Add an option.
+
+        """
+
+        if self._subcommands or self._positionals:
+            raise Exception(
+                "options must be added before subcommands and positionals")
+
+        self._options.append(_Option(name,
+                                     short,
+                                     default,
+                                     multiple_occurrences,
+                                     help))
+
+    def add_positional(self,
+                       name: string,
+                       multiple_occurrences: bool = False,
+                       help: string = None):
+        """Add a positional.
+
+        """
+
+        if self._subcommands:
+            raise Exception("positionals and subparsers can not be mixed")
+
+        if self._positionals:
+            if self._positionals[-1].multiple_occurrences:
+                raise Exception("only the last posistional can occur multiple times")
+
+        self._positionals.append(_Positional(name,
+                                             multiple_occurrences,
+                                             help))
+
+    def add_subcommand(self,
+                       name: string,
+                       help: string = None) -> Parser:
+        """Add a subcommand.
+
+        """
+
+        if self._positionals:
+            raise Exception("positionals and subparsers can not be mixed")
+
+        parser = Parser(name, help=help, parent=self)
+        self._subcommands.append(parser)
+
+        return parser
+
+    def parse(self, args: [string]) -> Args:
+        """Parse given arguments.
+
+        """
+
+        reader = _Reader(args, pos=1)
+
+        return self._parse(reader)
+
+    def print_help(self):
+        prefix = self._format_usage_prefix()
+
+        print(f"Usage: {prefix}{self.name} ...")
+
+        if self.help is not None:
+            print()
+            print(self.help)
+
+        self._print_subcommands_help()
+        self._print_options_help()
+        self._print_positionals_help()
+
+    def _format_usage_prefix(self) -> string:
+        if self._parent:
+            prefix = self._parent._format_usage_prefix()
+
+            return f"{prefix}{self._parent.name} "
+        else:
+            return ""
+
+    def _print_subcommands_help(self):
+        if self._subcommands:
+            print()
+            print("Commands:")
+            print()
+
+            for subcommand in self._subcommands:
+                help = ""
+
+                if subcommand.help is not None:
+                    help = subcommand.help
+
+                print(f"  {subcommand.name} {help}")
+
+    def _print_options_help(self):
+        if self._options:
+            print()
+            print("Options:")
+            print()
+
+            for arg in self._options:
+                help = ""
+
+                if arg.help is not None:
+                    help = arg.help
+
+                if arg.short:
+                    short = f"{arg.short}, "
+                else:
+                    short = ""
+
+                print(f"  {short}{arg.name} {help}")
+
+    def _print_positionals_help(self):
+        if self._positionals:
+            print()
+            print("Positionals:")
+            print()
+
+            for arg in self._positionals:
+                help = ""
+
+                if arg.help is not None:
+                    help = arg.help
+
+                print(f"  {arg.name} {help}")
+
+    def _find_option(self, name: string) -> _Option:
+        for arg in self._options:
+            if arg.name == name or arg.short == name:
+                return arg
+
+        raise Exception(f"invalid option '{name}'")
+
+    def _short_to_long_option(self, short: string) -> string:
+        for option in self._options:
+            if option.short == short:
+                return option.name
+
+        raise Exception(f"invalid option '{short}'")
+
+    def _expand_option(self, option: string) -> [string]:
+        options = []
+
+        if option.startswith("--"):
+            options.append(option)
+        else:
+            for short in option[1:]:
+                options.append(self._short_to_long_option(f"-{short}"))
+
+        return options
+
+    def _parse_options(self,
+                       reader: _Reader,
+                       options: {string: u32},
+                       single_values: {string: string},
+                       multiple_values: {string: [string]}):
+        while True:
+            name = reader.get()
+
+            if name is None:
+                break
+
+            if not name.startswith("-"):
+                reader.rewind()
+                break
+
+            if name == "--":
+                break
+
+            for name in self._expand_option(name):
+                option = self._find_option(name)
+
+                if name == "--help":
+                    self.print_help()
+
+                    raise Exception()
+
+                if option.is_single_flag():
+                    if options[name] > 0:
+                        raise Exception(f"'{arg.name}' can only be given once")
+
+                    options[name] = 1
+                elif option.is_multiple_flag():
+                    options[name] += 1
+                elif option.is_single_value():
+                    if single_values[name] is not None:
+                        raise Exception(f"'{arg.name}' can only be given once")
+
+                    single_values[name] = reader.get()
+                else:
+                    multiple_values[name].append(reader.get())
+
+    def _find_subcommand(self, name: string) -> string:
+        for subcommand in self._subcommands:
+            if subcommand.name == name:
+                return subcommand
+
+        raise Exception(f"invalid subcommand '{name}'")
+
+    def _parse_subcommand(self, reader: _Reader) -> (string, Args):
+        name = reader.get()
+
+        if name is None:
+            return (None, None)
+
+        subcommand = self._find_subcommand(name)
+
+        return (name, subcommand._parse(reader))
+
+    def _get_positional_value(self,
+                              name: string,
+                              reader: _Reader) -> string:
+        value = reader.get()
+
+        if value is None:
+            raise Exception(f"positional argument '{name}' missing")
+
+        return value
+
+    def _parse_positionals(self,
+                           reader: _Reader,
+                           single_values: {string: string},
+                           multiple_values: {string: [string]}):
+        for positional in self._positionals:
+            name = positional.name
+            value = self._get_positional_value(name, reader)
+
+            if positional.is_single_value():
+                single_values[name] = value
+            else:
+                multiple_values[name] = [value]
+
+                while True:
+                    value = reader.get()
+
+                    if value is None:
+                        break
+
+                    multiple_values[name].append(value)
+
+    def _parse(self, reader: _Reader) -> Args:
+        options: {string: u32} = {}
+        single_values: {string: string} = {}
+        multiple_values: {string: [string]} = {}
+        subcommand: (string, Args) = (None, None)
+
+        for arg in self._options:
+            if arg.is_flag():
+                options[arg.name] = 0
+            elif arg.is_single_value():
+                single_values[arg.name] = arg.default
+            elif arg.is_multiple_value():
+                multiple_values[arg.name] = []
+
+        self._parse_options(reader, options, single_values, multiple_values)
+
+        if self._subcommands:
+            subcommand = self._parse_subcommand(reader)
+        else:
+            self._parse_positionals(reader, single_values, multiple_values)
+
+        return Args(options, single_values, multiple_values, subcommand)
+
+@test
+def test_various():
+    parser = Parser("foo",
+                    help="Does awesome things",
+                    version="1.0.0")
+    parser.add_option("--verbose",
+                      short="-v",
+                      multiple_occurrences=True,
+                      help="Verbose output.")
+
+    monkey = parser.add_subcommand("monkey", help="Some more stuff.")
+    monkey.add_option("--height", default="80")
+    monkey.add_positional("banana", multiple_occurrences=True, help="Banana?")
+
+    cat = parser.add_subcommand("cat", help="What?")
+    cat.add_option("--auto", short="-a")
+    cat.add_option("--rate", default="10000")
+    cat.add_positional("food")
+
+    args = parser.parse(['foo'])
+
+    assert_eq(args.occurrences_of("--verbose"), 0)
+    assert_eq(args.subcommand(), (None, None))
