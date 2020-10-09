@@ -242,51 +242,57 @@ class Parser:
             return ""
 
     def _print_subcommands_help(self):
-        if self._subcommands:
-            print()
-            print("Commands:")
-            print()
+        if not self._subcommands:
+            return
 
-            for subcommand in self._subcommands:
-                help = ""
+        print()
+        print("Commands:")
+        print()
 
-                if subcommand.help is not None:
-                    help = subcommand.help
+        for subcommand in self._subcommands:
+            help = ""
 
-                print(f"  {subcommand.name} {help}")
+            if subcommand.help is not None:
+                help = subcommand.help
+
+            print(f"  {subcommand.name} {help}")
 
     def _print_options_help(self):
-        if self._options:
-            print()
-            print("Options:")
-            print()
+        if not self._options:
+            return
 
-            for arg in self._options:
-                help = ""
+        print()
+        print("Options:")
+        print()
 
-                if arg.help is not None:
-                    help = arg.help
+        for arg in self._options:
+            help = ""
 
-                if arg.short:
-                    short = f"{arg.short}, "
-                else:
-                    short = ""
+            if arg.help is not None:
+                help = arg.help
 
-                print(f"  {short}{arg.name} {help}")
+            if arg.short:
+                short = f"{arg.short}, "
+            else:
+                short = ""
+
+            print(f"  {short}{arg.name} {help}")
 
     def _print_positionals_help(self):
-        if self._positionals:
-            print()
-            print("Positionals:")
-            print()
+        if not self._positionals:
+            return
 
-            for arg in self._positionals:
-                help = ""
+        print()
+        print("Positionals:")
+        print()
 
-                if arg.help is not None:
-                    help = arg.help
+        for arg in self._positionals:
+            help = ""
 
-                print(f"  {arg.name} {help}")
+            if arg.help is not None:
+                help = arg.help
+
+            print(f"  {arg.name} {help}")
 
     def _find_option(self, name: string) -> _Option:
         for arg in self._options:
