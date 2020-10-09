@@ -88,41 +88,33 @@ class Args:
         return self.occurrences_of(arg) > 0
 
     def occurrences_of(self, arg: string) -> u32:
-        """Returns the number of times given argument was given.
+        """Returns the number of times given presence (boolean) option was
+        given.
 
         """
 
-        if arg in self._options:
-            return self._options[arg]
-        elif arg in self._single_values:
-            if self._values[arg] is None:
-                return 0
-            else:
-                return 1
-        elif arg in self._multiple_values:
-            return len(self._single_values[arg])
-        else:
-            raise Exception(f"invalid argument {arg}")
+        return self._options[arg]
 
     def value_of(self, arg: string) -> string:
-        """Returns the value of given argument. Raises an error if given
-        argument does not take a value or can be given more than once.
+        """Returns the value of given option or positional. Raises an error
+        if given option does not take a value or if given positional can be
+        given multiple times.
 
         """
 
         return self._single_values[arg]
 
     def values_of(self, arg: string) -> [string]:
-        """Returns a list of values of given argument. Raises an error if
-        given argument does not take a value or can only be given
-        once.
+        """Returns a list of values of given multiple occurrences option or
+        positional.
 
         """
 
         return self._multiple_values[arg]
 
     def subcommand(self) -> (string, Args):
-        """Returns a tuple of found subcommand and its arguments.
+        """Returns a tuple of the subcommand and its arguments, or (None, None)
+        if no subcommand was found.
 
         """
 
@@ -150,13 +142,7 @@ class Parser:
         self._options = []
         self._positionals = []
         self._subcommands = []
-        self.add_option("--help",
-                        short="-h",
-                        help="Show this help.")
-
-        if version is not None:
-            self.add_option("--version",
-                            help="Show version infomation.")
+        self._add_builtin_options()
 
     def add_option(self,
                    name: string,
@@ -322,6 +308,26 @@ class Parser:
 
         return options
 
+    def _add_builtin_options(self):
+        self.add_option("--help",
+                        short="-h",
+                        help="Show this help.")
+
+        if self.version is not None:
+            self.add_option("--version",
+                            help="Show version infomation.")
+
+    def _handle_builtin_options(self, name: string):
+        if name == "--help":
+            self.print_help()
+
+            raise Exception()
+
+        if name == "--version":
+            print(self.version)
+
+            raise Exception()
+
     def _parse_options(self,
                        reader: _Reader,
                        options: {string: u32},
@@ -340,10 +346,7 @@ class Parser:
             for name in self._expand_option(name):
                 option = self._find_option(name)
 
-                if name == "--help":
-                    self.print_help()
-
-                    raise Exception()
+                self._handle_builtin_options(name)
 
                 if option.is_single_flag():
                     if options[name] > 0:
