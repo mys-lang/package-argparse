@@ -2,21 +2,26 @@ class _Option:
 
     name: string
     short: string
+    takes_value: bool
     default: string
     multiple_occurrences: bool
     help: string
-    takes_value: bool
 
     def __init__(self,
                  name: string,
                  short: string,
+                 takes_value: bool,
                  default: string,
                  multiple_occurrences: bool,
                  help: string):
+        if default is not None and multiple_occurrences:
+            raise Exception(
+                "multiple occurrences options can not have a default value")
+
         self.name = name
         self.short = short
         self.default = default
-        self.takes_value = False
+        self.takes_value = takes_value
 
         if default is not None:
             self.takes_value = True
@@ -153,6 +158,7 @@ class Parser:
     def add_option(self,
                    name: string,
                    short: string = None,
+                   takes_value: bool = False,
                    default: string = None,
                    multiple_occurrences: bool = False,
                    help: string = None):
@@ -166,6 +172,7 @@ class Parser:
 
         self._options.append(_Option(name,
                                      short,
+                                     takes_value,
                                      default,
                                      multiple_occurrences,
                                      help))
