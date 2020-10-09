@@ -58,9 +58,12 @@ class _Reader:
     args: [string]
     pos: u32
 
+    def available(self) -> bool:
+        return self._pos < len(self._args)
+
     def get(self) -> string:
         if self._pos == len(self._args):
-            return None
+            raise Exception("out of data")
 
         arg = self._args[self._pos]
         self._pos += 1
@@ -324,11 +327,8 @@ class Parser:
                        options: {string: u32},
                        single_values: {string: string},
                        multiple_values: {string: [string]}):
-        while True:
+        while reader.available():
             name = reader.get()
-
-            if name is None:
-                break
 
             if not name.startswith("-"):
                 reader.rewind()
@@ -368,24 +368,20 @@ class Parser:
         raise Exception(f"invalid subcommand '{name}'")
 
     def _parse_subcommand(self, reader: _Reader) -> (string, Args):
-        name = reader.get()
-
-        if name is None:
+        if not reader.available():
             return (None, None)
 
-        subcommand = self._find_subcommand(name)
+        subcommand = self._find_subcommand(reader.get())
 
         return (name, subcommand._parse(reader))
 
     def _get_positional_value(self,
                               name: string,
                               reader: _Reader) -> string:
-        value = reader.get()
-
-        if value is None:
+        if not reader.available():
             raise Exception(f"positional argument '{name}' missing")
 
-        return value
+        return reader.get()
 
     def _parse_positionals(self,
                            reader: _Reader,
@@ -400,13 +396,8 @@ class Parser:
             else:
                 multiple_values[name] = [value]
 
-                while True:
-                    value = reader.get()
-
-                    if value is None:
-                        break
-
-                    multiple_values[name] += value
+                while reader.available():
+                    multiple_values[name] += reader.get()
 
     def _parse(self, reader: _Reader) -> Args:
         options: {string: u32} = {}
@@ -428,6 +419,9 @@ class Parser:
             subcommand = self._parse_subcommand(reader)
         else:
             self._parse_positionals(reader, single_values, multiple_values)
+
+        if reader.available():
+            raise Exception("all arguments were not used")
 
         return Args(options, single_values, multiple_values, subcommand)
 
