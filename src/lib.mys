@@ -59,19 +59,19 @@ class _Reader:
     pos: u32
 
     def available(self) -> bool:
-        return self._pos < len(self._args)
+        return self.pos < len(self.args)
 
     def get(self) -> string:
-        if self._pos == len(self._args):
+        if self.pos == len(self.args):
             raise Exception("out of data")
 
-        arg = self._args[self._pos]
-        self._pos += 1
+        arg = self.args[self.pos]
+        self.pos += 1
 
         return arg
 
     def unget(self):
-        self._pos -= 1
+        self.pos -= 1
 
 class Args:
 
