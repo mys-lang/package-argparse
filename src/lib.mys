@@ -70,7 +70,7 @@ class _Reader:
 
         return arg
 
-    def rewind(self):
+    def unget(self):
         self._pos -= 1
 
 class Args:
@@ -133,7 +133,7 @@ class Parser:
     name: string
     help: string
     version: string
-    _parent: Parser
+    _parent: weak[Parser]
     _options: [_Option]
     _positionals: [_Positional]
     _subcommands: [Parser]
@@ -331,7 +331,7 @@ class Parser:
             name = reader.get()
 
             if not name.startswith("-"):
-                reader.rewind()
+                reader.unget()
                 break
 
             if name == "--":
