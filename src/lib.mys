@@ -197,7 +197,7 @@ class Parser:
 
         self._positionals += _Positional(name,
                                          multiple_occurrences,
-                                         help))
+                                         help)
 
     def add_subcommand(self,
                        name: string,
