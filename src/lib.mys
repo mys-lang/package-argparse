@@ -170,12 +170,12 @@ class Parser:
             raise Exception(
                 "options must be added before subcommands and positionals")
 
-        self._options.append(_Option(name,
-                                     short,
-                                     takes_value,
-                                     default,
-                                     multiple_occurrences,
-                                     help))
+        self._options += _Option(name,
+                                 short,
+                                 takes_value,
+                                 default,
+                                 multiple_occurrences,
+                                 help)
 
     def add_positional(self,
                        name: string,
@@ -192,9 +192,9 @@ class Parser:
             if self._positionals[-1].multiple_occurrences:
                 raise Exception("only the last posistional can occur multiple times")
 
-        self._positionals.append(_Positional(name,
-                                             multiple_occurrences,
-                                             help))
+        self._positionals += _Positional(name,
+                                         multiple_occurrences,
+                                         help))
 
     def add_subcommand(self,
                        name: string,
@@ -207,7 +207,7 @@ class Parser:
             raise Exception("positionals and subparsers can not be mixed")
 
         parser = Parser(name, help=help, parent=self)
-        self._subcommands.append(parser)
+        self._subcommands += parser
 
         return parser
 
@@ -306,10 +306,10 @@ class Parser:
         options = []
 
         if option.startswith("--"):
-            options.append(option)
+            options += option
         else:
             for short in option[1:]:
-                options.append(self._short_to_long_option(f"-{short}"))
+                options += self._short_to_long_option(f"-{short}")
 
         return options
 
@@ -352,7 +352,7 @@ class Parser:
 
                     single_values[name] = reader.get()
                 else:
-                    multiple_values[name].append(reader.get())
+                    multiple_values[name] += reader.get()
 
     def _find_subcommand(self, name: string) -> string:
         for subcommand in self._subcommands:
@@ -400,7 +400,7 @@ class Parser:
                     if value is None:
                         break
 
-                    multiple_values[name].append(value)
+                    multiple_values[name] += value
 
     def _parse(self, reader: _Reader) -> Args:
         options: {string: u32} = {}
