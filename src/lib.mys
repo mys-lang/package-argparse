@@ -265,18 +265,18 @@ class Parser:
         print("Options:")
         print()
 
-        for arg in self._options:
+        for option in self._options:
             help = ""
 
-            if arg.help is not None:
-                help = arg.help
+            if option.help is not None:
+                help = option.help
 
-            if arg.short:
-                short = f"{arg.short}, "
+            if option.short:
+                short = f"{option.short}, "
             else:
                 short = ""
 
-            print(f"  {short}{arg.name} {help}")
+            print(f"  {short}{option.name} {help}")
 
     def _print_positionals_help(self):
         if not self._positionals:
@@ -286,18 +286,18 @@ class Parser:
         print("Positionals:")
         print()
 
-        for arg in self._positionals:
+        for positional in self._positionals:
             help = ""
 
-            if arg.help is not None:
-                help = arg.help
+            if positional.help is not None:
+                help = positional.help
 
-            print(f"  {arg.name} {help}")
+            print(f"  {positional.name} {help}")
 
     def _find_option(self, name: string) -> _Option:
-        for arg in self._options:
-            if arg.name == name or arg.short == name:
-                return arg
+        for option in self._options:
+            if option.name == name or option.short == name:
+                return option
 
         raise Exception(f"invalid option '{name}'")
 
@@ -347,14 +347,14 @@ class Parser:
 
                 if option.is_single_flag():
                     if options[name] > 0:
-                        raise Exception(f"'{arg.name}' can only be given once")
+                        raise Exception(f"'{name}' can only be given once")
 
                     options[name] = 1
                 elif option.is_multiple_flag():
                     options[name] += 1
                 elif option.is_single_value():
                     if single_values[name] is not None:
-                        raise Exception(f"'{arg.name}' can only be given once")
+                        raise Exception(f"'{name}' can only be given once")
 
                     single_values[name] = reader.get()
                 else:
@@ -414,13 +414,13 @@ class Parser:
         multiple_values: {string: [string]} = {}
         subcommand: (string, Args) = (None, None)
 
-        for arg in self._options:
-            if arg.is_flag():
-                options[arg.name] = 0
-            elif arg.is_single_value():
-                single_values[arg.name] = arg.default
-            elif arg.is_multiple_value():
-                multiple_values[arg.name] = []
+        for option in self._options:
+            if option.is_flag():
+                options[option.name] = 0
+            elif option.is_single_value():
+                single_values[option.name] = option.default
+            elif option.is_multiple_value():
+                multiple_values[option.name] = []
 
         self._parse_options(reader, options, single_values, multiple_values)
 
