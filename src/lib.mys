@@ -55,17 +55,17 @@ class _Positional:
 
 class _Reader:
 
-    args: [string]
+    argv: [string]
     pos: u32
 
     def available(self) -> bool:
-        return self.pos < len(self.args)
+        return self.pos < len(self.argv)
 
     def get(self) -> string:
-        if self.pos == len(self.args):
+        if not self.available():
             raise Exception("out of data")
 
-        arg = self.args[self.pos]
+        arg = self.argv[self.pos]
         self.pos += 1
 
         return arg
@@ -201,12 +201,12 @@ class Parser:
 
         return parser
 
-    def parse(self, args: [string]) -> Args:
+    def parse(self, argv: [string]) -> Args:
         """Parse given arguments.
 
         """
 
-        reader = _Reader(args, pos=1)
+        reader = _Reader(argv, pos=1)
 
         return self._parse(reader)
 
