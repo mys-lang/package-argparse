@@ -81,7 +81,8 @@ class Args:
     _subcommand: (string, Args)
 
     def is_present(self, arg: string) -> bool:
-        """Returns true if given argument is present, false otherwise.
+        """Returns true if given presence (boolean) option was given, false
+        otherwise.
 
         """
 
@@ -447,20 +448,20 @@ def test_various():
     cat.add_option("--rate", default="10000")
     cat.add_positional("food")
 
-    args = parser.parse(['foo'])
+    args = parser.parse(["foo"])
     assert_eq(args.occurrences_of("--verbose"), 0)
     assert_eq(args.subcommand(), (None, None))
 
-    args = parser.parse(['foo', '--verbose'])
+    args = parser.parse(["foo", "--verbose"])
     assert_eq(args.occurrences_of("--verbose"), 1)
 
-    args = parser.parse(['foo', '-vvv'])
+    args = parser.parse(["foo", "-vvv"])
     assert_eq(args.occurrences_of("--verbose"), 3)
 
-    args = parser.parse(['foo', 'cat', '--auto', 'rat'])
-    assert_true(args.is_present('--verbose'))
+    args = parser.parse(["foo", "cat", "--auto", "rat"])
+    assert_true(args.is_present("--verbose"))
     name, args = args.subcommand()
-    assert_eq(name, 'cat')
-    assert_true(args.is_present('--auto'))
-    assert_true(args.value_of('--rate'), "10000")
-    assert_eq(args.value_of('food'), 'rat')
+    assert_eq(name, "cat")
+    assert_true(args.is_present("--auto"))
+    assert_true(args.value_of("--rate"), "10000")
+    assert_eq(args.value_of("food"), "rat")
