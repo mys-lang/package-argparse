@@ -324,10 +324,11 @@ class Parser:
 
             raise Exception()
 
-        if name == "--version":
-            print(self.version)
+        if self.version is not None:
+            if name == "--version":
+                print(self.version)
 
-            raise Exception()
+                raise Exception()
 
     def _parse_options(self,
                        reader: _Reader,
