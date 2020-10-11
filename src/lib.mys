@@ -206,9 +206,7 @@ class Parser:
 
         """
 
-        reader = _Reader(argv, pos=1)
-
-        return self._parse(reader)
+        return self._parse(_Reader(argv, pos=1))
 
     def print_help(self):
         prefix = self._format_usage_prefix()
