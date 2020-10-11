@@ -2,4 +2,4 @@
 name = "argparse"
 version = "0.1.0"
 authors = ["Erik Moqvist <erik.moqvist@gmail.com>"]
-description = "Commanf line argument parser."
+description = "Command line argument parser."
