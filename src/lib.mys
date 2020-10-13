@@ -160,6 +160,15 @@ class Parser:
             raise Exception(
                 "options must be added before subcommands and positionals")
 
+        if not name.startswith("--"):
+            raise Exception("long options must start with '--'")
+
+        if short is not None:
+            if len(short) != 2 or short[0] != '-' or short[1] == '-':
+                raise Exception(
+                    "short options must be a '-' followed by any character "
+                    "except '-'")
+
         self._options += _Option(name,
                                  short,
                                  takes_value,
