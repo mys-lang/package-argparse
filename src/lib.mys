@@ -15,7 +15,7 @@ class _Option:
                  multiple_occurrences: bool,
                  help: string):
         if default is not None and multiple_occurrences:
-            raise Exception(
+            raise Error(
                 "multiple occurrences options can not have a default value")
 
         self.name = name
@@ -63,7 +63,7 @@ class _Reader:
 
     def get(self) -> string:
         if not self.available():
-            raise Exception("out of data")
+            raise Error("out of data")
 
         arg = self.argv[self.pos]
         self.pos += 1
@@ -157,15 +157,15 @@ class Parser:
         """
 
         if self._subcommands or self._positionals:
-            raise Exception(
+            raise Error(
                 "options must be added before subcommands and positionals")
 
         if not name.startswith("--"):
-            raise Exception("long options must start with '--'")
+            raise Error("long options must start with '--'")
 
         if short is not None:
             if len(short) != 2 or short[0] != '-' or short[1] == '-':
-                raise Exception(
+                raise Error(
                     "short options must be a '-' followed by any character "
                     "except '-'")
 
@@ -185,11 +185,11 @@ class Parser:
         """
 
         if self._subcommands:
-            raise Exception("positionals and subparsers can not be mixed")
+            raise Error("positionals and subparsers can not be mixed")
 
         if self._positionals:
             if self._positionals[-1].multiple_occurrences:
-                raise Exception("only the last posistional can occur multiple times")
+                raise Error("only the last posistional can occur multiple times")
 
         self._positionals += _Positional(name,
                                          multiple_occurrences,
@@ -203,7 +203,7 @@ class Parser:
         """
 
         if self._positionals:
-            raise Exception("positionals and subparsers can not be mixed")
+            raise Error("positionals and subparsers can not be mixed")
 
         parser = Parser(name, help=help, parent=self)
         self._subcommands += parser
@@ -296,14 +296,14 @@ class Parser:
             if option.name == name or option.short == name:
                 return option
 
-        raise Exception(f"invalid option '{name}'")
+        raise Error(f"invalid option '{name}'")
 
     def _short_to_long_option(self, short: string) -> string:
         for option in self._options:
             if option.short == short:
                 return option.name
 
-        raise Exception(f"invalid option '{short}'")
+        raise Error(f"invalid option '{short}'")
 
     def _expand_option(self, option: string) -> [string]:
         options = []
@@ -329,13 +329,13 @@ class Parser:
         if name == "--help":
             self.print_help()
 
-            raise Exception()
+            raise Error()
 
         if self.version is not None:
             if name == "--version":
                 print(self.version)
 
-                raise Exception()
+                raise Error()
 
     def _parse_options(self,
                        reader: _Reader,
@@ -359,14 +359,14 @@ class Parser:
 
                 if option.is_single_flag():
                     if options[name] > 0:
-                        raise Exception(f"'{name}' can only be given once")
+                        raise Error(f"'{name}' can only be given once")
 
                     options[name] = 1
                 elif option.is_multiple_flag():
                     options[name] += 1
                 elif option.is_single_value():
                     if single_values[name] is not None:
-                        raise Exception(f"'{name}' can only be given once")
+                        raise Error(f"'{name}' can only be given once")
 
                     single_values[name] = reader.get()
                 else:
@@ -377,7 +377,7 @@ class Parser:
             if subcommand.name == name:
                 return subcommand
 
-        raise Exception(f"invalid subcommand '{name}'")
+        raise Error(f"invalid subcommand '{name}'")
 
     def _parse_subcommand(self, reader: _Reader) -> (string, Args):
         if not reader.available():
@@ -391,7 +391,7 @@ class Parser:
                               name: string,
                               reader: _Reader) -> string:
         if not reader.available():
-            raise Exception(f"positional argument '{name}' missing")
+            raise Error(f"positional argument '{name}' missing")
 
         return reader.get()
 
@@ -433,7 +433,7 @@ class Parser:
             self._parse_positionals(reader, single_values, multiple_values)
 
         if reader.available():
-            raise Exception("all arguments were not used")
+            raise Error("all arguments were not used")
 
         return Args(options, single_values, multiple_values, subcommand)
 
