@@ -14,7 +14,7 @@ class _Option:
                  default: string,
                  multiple_occurrences: bool,
                  help: string):
-        if default is not None and multiple_occurrences:
+        if multiple_occurrences and default is not None:
             raise Error(
                 "multiple occurrences options can not have a default value")
 
@@ -55,23 +55,23 @@ class _Positional:
 
 class _Reader:
 
-    argv: [string]
-    pos: u32
+    _argv: [string]
+    _pos: u32
 
     def available(self) -> bool:
-        return self.pos < len(self.argv)
+        return self._pos < self._argv.length()
 
     def get(self) -> string:
         if not self.available():
             raise Error("out of data")
 
-        arg = self.argv[self.pos]
-        self.pos += 1
+        arg = self._argv[self._pos]
+        self._pos += 1
 
         return arg
 
     def unget(self):
-        self.pos -= 1
+        self._pos -= 1
 
 class Args:
 
@@ -164,7 +164,7 @@ class Parser:
             raise Error("long options must start with '--'")
 
         if short is not None:
-            if len(short) != 2 or short[0] != '-' or short[1] == '-':
+            if short.length() != 2 or short[0] != '-' or short[1] == '-':
                 raise Error(
                     "short options must be a '-' followed by any character "
                     "except '-'")
@@ -185,7 +185,7 @@ class Parser:
         """
 
         if self._subcommands:
-            raise Error("positionals and subparsers can not be mixed")
+            raise Error("positionals and subcommands can not be mixed")
 
         if self._positionals:
             if self._positionals[-1].multiple_occurrences:
