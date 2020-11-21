@@ -415,7 +415,7 @@ class Parser:
         options: {string: u32} = {}
         single_values: {string: string} = {}
         multiple_values: {string: [string]} = {}
-        subcommand: (string, Args) = (None, None)
+        subcommand: (string, Args) = None
 
         for option in self._options:
             if option.is_flag():
@@ -430,6 +430,7 @@ class Parser:
         if self._subcommands:
             subcommand = self._parse_subcommand(reader)
         else:
+            subcommand = (None, None)
             self._parse_positionals(reader, single_values, multiple_values)
 
         if reader.available():
