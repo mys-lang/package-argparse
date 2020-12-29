@@ -23,4 +23,11 @@ Examples
 
        print(args)
 
+Build and run:
+
+.. code-block:: text
+
+   $ mys run -- --verbose foobar.txt
+   Args(_options={"--help": 0, "--verbose": 1}, _single_values={"file": "apa.txt"}, _multiple_values={}, _subcommand=(None, None))
+
 .. _Mys programming language: https://github.com/eerimoq/mys
