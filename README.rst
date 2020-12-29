@@ -1,5 +1,3 @@
-|buildstatus|_
-
 Argparse
 ========
 
@@ -24,8 +22,5 @@ Examples
        args = parser.parse(argv)
 
        print(args)
-
-.. |buildstatus| image:: https://travis-ci.com/eerimoq/mys-argparse.svg?branch=master
-.. _buildstatus: https://travis-ci.com/eerimoq/mys-argparse
 
 .. _Mys programming language: https://github.com/eerimoq/mys
