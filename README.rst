@@ -9,6 +9,7 @@ Examples
 .. code-block:: python
 
    from argparse import Parser
+   from argparse import Args
 
    def main(argv: [string]):
        parser = Parser("tar")
@@ -21,13 +22,31 @@ Examples
 
        args = parser.parse(argv)
 
-       print(args)
+       print("File:                ", args.value_of("file"))
+       print("Number of --verbose: ", args.occurrences_of("--verbose"))
 
 Build and run:
 
 .. code-block:: text
 
    $ mys run -- --verbose foobar.txt
-   Args(_options={"--help": 0, "--verbose": 1}, _single_values={"file": "apa.txt"}, _multiple_values={}, _subcommand=(None, None))
+   File:                 foobar.txt
+   Number of --verbose:  1
+
+Show help:
+
+.. code-block:: text
+
+   $ mys run -- --help
+   Usage: tar ...
+
+   Options:
+
+     -h, --help Show this help.
+     -v, --verbose Verbose output.
+
+   Positionals:
+
+     file A file.
 
 .. _Mys programming language: https://github.com/eerimoq/mys
