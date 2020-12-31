@@ -527,3 +527,54 @@ def test_add_multiple_occurrences_positional_before_positional():
         res = 1
 
     assert res == 1
+
+@test
+def test_help():
+    parser = Parser("foo",
+                    help="Does awesome things",
+                    version="1.0.0")
+    parser.add_option("--verbose",
+                      short="-v",
+                      multiple_occurrences=True,
+                      help="Verbose output.")
+
+    monkey = parser.add_subcommand("monkey", help="Some more stuff.")
+    monkey.add_option("--height", default="80")
+    monkey.add_positional("banana", multiple_occurrences=True, help="Banana?")
+
+    cat = parser.add_subcommand("cat", help="What?")
+    cat.add_option("--auto", short="-a")
+    cat.add_option("--rate", default="10000")
+    cat.add_positional("food")
+
+    try:
+        res = 0
+        parser.parse(["foo", "--help"])
+    except GeneralError:
+        res = 1
+
+    assert res == 1
+
+@test
+def test_version():
+    parser = Parser("foo", version="0.3.0")
+
+    try:
+        res = 0
+        parser.parse(["foo", "--version"])
+    except GeneralError:
+        res = 1
+
+    assert res == 1
+
+@test
+def test_no_version():
+    parser = Parser("foo")
+
+    try:
+        res = 0
+        parser.parse(["foo", "--version"])
+    except GeneralError:
+        res = 1
+
+    assert res == 1
