@@ -203,7 +203,8 @@ class Parser:
 
         if self._positionals != []:
             if self._positionals[-1].multiple_occurrences:
-                raise GeneralError("only the last posistional can occur multiple times")
+                raise GeneralError(
+                    "only the last posistional can occur multiple times")
 
         self._positionals.append(_Positional(name,
                                              multiple_occurrences,
@@ -435,11 +436,16 @@ class Parser:
             if option.is_flag():
                 options[option.name] = 0
             elif option.is_single_value():
-                single_values[option.name] = option.default
+                single_values[option.name] = None
             elif option.is_multiple_value():
                 multiple_values[option.name] = []
 
         self._parse_options(reader, options, single_values, multiple_values)
+
+        for option in self._options:
+            if option.is_single_value():
+                if single_values[option.name] is None:
+                    single_values[option.name] = option.default
 
         if self._subcommands != []:
             subcommand = self._parse_subcommand(reader)
@@ -453,7 +459,7 @@ class Parser:
         return Args(options, single_values, multiple_values, subcommand)
 
 @test
-def test_various():
+def test_cat_and_monkey_subcommands():
     parser = Parser("foo",
                     help="Does awesome things",
                     version="1.0.0")
@@ -488,3 +494,36 @@ def test_various():
     assert args.is_present("--auto")
     assert args.value_of("--rate") == "10000"
     assert args.value_of("food") == "rat"
+
+    args = parser.parse(["foo", "monkey", "--height", "75", "b1", "b2"])
+    assert not args.is_present("--verbose")
+    name, args = args.subcommand()
+    assert name == "monkey"
+    assert args.value_of("--height") == "75"
+    assert args.values_of("banana") == ["b1", "b2"]
+
+@test
+def test_add_option_after_positional():
+    parser = Parser("bar")
+    parser.add_positional("out")
+
+    try:
+        res = 0
+        parser.add_option("--verbose")
+    except GeneralError:
+        res = 1
+
+    assert res == 1
+
+@test
+def test_add_multiple_occurrences_positional_before_positional():
+    parser = Parser("bar")
+    parser.add_positional("out", multiple_occurrences=True)
+
+    try:
+        res = 0
+        parser.add_option("in")
+    except GeneralError:
+        res = 1
+
+    assert res == 1
