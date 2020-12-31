@@ -344,13 +344,13 @@ class Parser:
         if name == "--help":
             self.print_help()
 
-            raise GeneralError()
+            raise SystemExitError()
 
         if self.version is not None:
             if name == "--version":
                 print(self.version)
 
-                raise GeneralError()
+                raise SystemExitError()
 
     def _parse_options(self,
                        reader: _Reader,
@@ -550,7 +550,7 @@ def test_help():
     try:
         res = 0
         parser.parse(["foo", "--help"])
-    except GeneralError:
+    except SystemExitError:
         res = 1
 
     assert res == 1
@@ -562,7 +562,7 @@ def test_version():
     try:
         res = 0
         parser.parse(["foo", "--version"])
-    except GeneralError:
+    except SystemExitError:
         res = 1
 
     assert res == 1
