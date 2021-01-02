@@ -578,3 +578,30 @@ def test_no_version():
         res = 1
 
     assert res == 1
+
+@test
+def test_is_present():
+    parser = Parser("bar")
+    parser.add_option("--foo")
+
+    args = parser.parse(["bar", "--foo"])
+    assert args.is_present("--foo")
+
+    args = parser.parse(["bar"])
+    assert not args.is_present("--foo")
+
+@test
+def test_is_present_bad_option():
+    parser = Parser("bar")
+
+    args = parser.parse(["bar"])
+
+    try:
+        res = 0
+        args.is_present("--foo")
+        # Should probably raise a more helpful message, like option
+        # --foo does not exits.
+    except KeyError:
+        res = 1
+
+    assert res == 1

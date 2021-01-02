@@ -49,4 +49,4 @@ Show help:
 
      file A file.
 
-.. _Mys programming language: https://github.com/eerimoq/mys
+.. _Mys programming language: https://github.com/mys-lang/mys
