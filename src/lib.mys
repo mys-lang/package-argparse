@@ -59,9 +59,9 @@ class _Positional:
 class _Reader:
 
     _argv: [string]
-    _pos: u64
+    _pos: i64
 
-    def __init__(self, argv: [string], pos: u64):
+    def __init__(self, argv: [string], pos: i64):
         self._argv = argv
         self._pos = pos
 
