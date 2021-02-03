@@ -458,7 +458,6 @@ class Parser:
             elif option.is_multiple_value():
                 multiple_values[option.name] = []
 
-        print("1", reader)
         self._parse_options(reader, options, single_values, multiple_values)
 
         for option in self._options:
@@ -471,7 +470,6 @@ class Parser:
         else:
             subcommand = (None, None)
             self._parse_positionals(reader, single_values, multiple_values)
-        print("2", reader)
 
         return Args(options, single_values, multiple_values, subcommand)
 
