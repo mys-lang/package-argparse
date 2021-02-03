@@ -9,7 +9,6 @@ Examples
 .. code-block:: python
 
    from argparse import Parser
-   from argparse import Args
 
    def main(argv: [string]):
        parser = Parser("tar")
