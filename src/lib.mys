@@ -2,7 +2,6 @@ class ArgparseError(Error):
     message: string
 
 class _Option:
-
     name: string
     short: string
     takes_value: bool
@@ -48,7 +47,6 @@ class _Option:
         return self.takes_value and self.multiple_occurrences
 
 class _Positional:
-
     name: string
     multiple_occurrences: bool
     help: string
@@ -57,7 +55,6 @@ class _Positional:
         return not self.multiple_occurrences
 
 class _Reader:
-
     _argv: [string]
     _pos: i64
 
@@ -81,11 +78,11 @@ class _Reader:
         self._pos -= 1
 
 class Args:
-
     _options: {string: i32}
     _single_values: {string: string}
     _multiple_values: {string: [string]}
     _subcommand: (string, Args)
+    remaining: [string]
 
     def __init__(self,
                  options: {string: i32},
@@ -96,6 +93,7 @@ class Args:
         self._single_values = single_values
         self._multiple_values = multiple_values
         self._subcommand = subcommand
+        self.remaining = []
 
     def is_present(self, arg: string) -> bool:
         """Returns true if given presence (boolean) option was given, false
@@ -144,7 +142,6 @@ class Args:
         return self._subcommand
 
 class Parser:
-
     name: string
     help: string
     version: string
@@ -226,7 +223,7 @@ class Parser:
         """
 
         if self._positionals != []:
-            raise ArgparseError("positionals and subparsers can not be mixed")
+            raise ArgparseError("positionals and subcommands can not be mixed")
 
         parser = Parser(name, help=help, parent=self)
         self._subcommands.append(parser)
@@ -238,7 +235,19 @@ class Parser:
 
         """
 
-        return self.parse_inner(_Reader(argv, pos=1))
+        reader = _Reader(argv, pos=1)
+        args = self.parse_inner(reader)
+
+        if reader.available():
+            arg = reader.get()
+
+            if arg == "--":
+                while reader.available():
+                    args.remaining.append(reader.get())
+            else:
+                raise ArgparseError(f"all arguments were not used")
+
+        return args
 
     def print_help(self):
         prefix = self.format_usage_prefix()
@@ -373,6 +382,7 @@ class Parser:
                 break
 
             if option_name == "--":
+                reader.unget()
                 break
 
             for name in self._expand_option(option_name):
@@ -448,6 +458,7 @@ class Parser:
             elif option.is_multiple_value():
                 multiple_values[option.name] = []
 
+        print("1", reader)
         self._parse_options(reader, options, single_values, multiple_values)
 
         for option in self._options:
@@ -460,9 +471,7 @@ class Parser:
         else:
             subcommand = (None, None)
             self._parse_positionals(reader, single_values, multiple_values)
-
-        if reader.available():
-            raise ArgparseError("all arguments were not used")
+        print("2", reader)
 
         return Args(options, single_values, multiple_values, subcommand)
 
@@ -516,14 +525,13 @@ def test_add_option_after_positional():
     parser.add_positional("out")
 
     try:
-        res = 0
+        message = ""
         parser.add_option("--verbose")
     except ArgparseError as e:
-        assert e.message == (
-            "options must be added before subcommands and positionals")
-        res = 1
+        message = e.message
 
-    assert res == 1
+    assert message == (
+        "options must be added before subcommands and positionals")
 
 @test
 def test_add_multiple_occurrences_positional_before_positional():
@@ -531,14 +539,13 @@ def test_add_multiple_occurrences_positional_before_positional():
     parser.add_positional("out", multiple_occurrences=True)
 
     try:
-        res = 0
+        message = ""
         parser.add_option("in")
     except ArgparseError as e:
-        assert e.message == (
-            "options must be added before subcommands and positionals")
-        res = 1
+        message = e.message
 
-    assert res == 1
+    assert message == (
+        "options must be added before subcommands and positionals")
 
 @test
 def test_help():
@@ -584,13 +591,12 @@ def test_no_version():
     parser = Parser("foo")
 
     try:
-        res = 0
+        message = ""
         parser.parse(["foo", "--version"])
     except ArgparseError as e:
-        assert e.message == "invalid option '--version'"
-        res = 1
+        message = e.message
 
-    assert res == 1
+    assert message == "invalid option '--version'"
 
 @test
 def test_is_present():
@@ -610,10 +616,149 @@ def test_is_present_bad_option():
     args = parser.parse(["bar"])
 
     try:
-        res = 0
+        message = ""
         args.is_present("--foo")
     except ArgparseError as e:
-        assert e.message == "--foo does not exist"
-        res = 1
+        message = e.message
 
-    assert res == 1
+    assert message == "--foo does not exist"
+
+@test
+def test_add_subcommand_after_positional():
+    parser = Parser("bar")
+    parser.add_positional("foo")
+
+    try:
+        message = ""
+        parser.add_subcommand("cat")
+    except ArgparseError as e:
+        message = e.message
+
+    assert message == "positionals and subcommands can not be mixed"
+
+@test
+def test_add_positional_after_subcommand():
+    parser = Parser("bar")
+    parser.add_subcommand("cat")
+
+    try:
+        message = ""
+        parser.add_positional("foo")
+    except ArgparseError as e:
+        message = e.message
+
+    assert message == "positionals and subcommands can not be mixed"
+
+@test
+def test_add_invalid_option():
+    parser = Parser("bar")
+
+    try:
+        message = ""
+        parser.add_option("cat")
+    except ArgparseError as e:
+        message = e.message
+
+    assert message == "long options must start with '--'"
+
+@test
+def test_add_invalid_short_option_1():
+    parser = Parser("bar")
+
+    try:
+        message = ""
+        parser.add_option("--cat", short="d")
+    except ArgparseError as e:
+        message = e.message
+
+    assert message == (
+        "short options must be a '-' followed by any character except '-'")
+
+@test
+def test_add_invalid_short_option_2():
+    parser = Parser("bar")
+
+    try:
+        message = ""
+        parser.add_option("--cat", short="--g")
+    except ArgparseError as e:
+        message = e.message
+
+    assert message == (
+        "short options must be a '-' followed by any character except '-'")
+
+@test
+def test_add_invalid_short_option_3():
+    parser = Parser("bar")
+
+    try:
+        message = ""
+        parser.add_option("--cat", short="--")
+    except ArgparseError as e:
+        message = e.message
+
+    assert message == (
+        "short options must be a '-' followed by any character except '-'")
+
+@test
+def test_invalid_suncommand():
+    parser = Parser("bar")
+    parser.add_subcommand("cat")
+
+    try:
+        message = ""
+        parser.parse(["bar", "foo"])
+    except ArgparseError as e:
+        message = e.message
+
+    assert message == "invalid subcommand 'foo'"
+
+@test
+def test_single_option_given_multiple_times():
+    parser = Parser("bar")
+    parser.add_option("--cat")
+
+    try:
+        message = ""
+        parser.parse(["bar", "--cat", "--cat"])
+    except ArgparseError as e:
+        message = e.message
+
+    assert message == "'--cat' can only be given once"
+
+@test
+def test_all_arguments_not_used():
+    parser = Parser("bar")
+    parser.add_positional("cat")
+
+    try:
+        message = ""
+        parser.parse(["bar", "apa", "ko"])
+    except ArgparseError as e:
+        message = e.message
+
+    assert message == "all arguments were not used"
+
+@test
+def test_end_of_arguments():
+    parser = Parser("bar")
+    parser.add_option("--cat")
+
+    args = parser.parse(["bar", "--", "--cat", "apa"])
+
+    assert not args.is_present("--cat")
+    assert args.remaining == ["--cat", "apa"]
+
+@test
+def test_end_of_arguments_with_subparser():
+    parser = Parser("bar")
+    cat = parser.add_subcommand("cat")
+    cat.add_option("--foo")
+
+    args = parser.parse(["bar", "cat", "--", "apa", "--foo"])
+
+    assert args.remaining == ["apa", "--foo"]
+
+    name, args = args.subcommand()
+    assert name == "cat"
+    assert args.remaining == []
