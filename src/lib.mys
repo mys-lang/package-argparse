@@ -760,3 +760,53 @@ def test_end_of_arguments_with_subparser():
     name, args = args.subcommand()
     assert name == "cat"
     assert args.remaining == []
+
+@test
+def test_multiple_occurrences_option_that_takes_value():
+    parser = Parser("bar")
+    parser.add_option("--cat",
+                      takes_value=True,
+                      multiple_occurrences=True)
+    args = parser.parse(["bar", "--cat", "1", "--cat", "2"])
+    assert args.values_of("--cat") == ["1", "2"]
+
+@test
+def test_multiple_occurrences_option_that_takes_value_missing_value():
+    parser = Parser("bar")
+    parser.add_option("--cat",
+                      takes_value=True,
+                      multiple_occurrences=True)
+
+    try:
+        message = ""
+        parser.parse(["bar", "--cat", "1", "--cat"])
+    except ArgparseError as e:
+        message = e.message
+
+    assert message == "out of data"
+
+@test
+def test_single_occurrence_option_that_takes_value_given_twice():
+    parser = Parser("bar")
+    parser.add_option("--cat", takes_value=True)
+
+    try:
+        message = ""
+        parser.parse(["bar", "--cat", "1", "--cat", "2"])
+    except ArgparseError as e:
+        message = e.message
+
+    assert message == "'--cat' can only be given once"
+
+@test
+def test_missing_positional():
+    parser = Parser("bar")
+    parser.add_positional("cat")
+
+    try:
+        message = ""
+        parser.parse(["bar"])
+    except ArgparseError as e:
+        message = e.message
+
+    assert message == "positional argument 'cat' missing"
