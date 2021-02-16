@@ -78,6 +78,10 @@ class _Reader:
         self._pos -= 1
 
 class Args:
+    """Returned by the parser's parse method.
+
+    """
+
     _options: {string: i32}
     _single_values: {string: string}
     _multiple_values: {string: [string]}
@@ -142,6 +146,10 @@ class Args:
         return self._subcommand
 
 class Parser:
+    """An argument parser.
+
+    """
+
     name: string
     help: string
     version: string
@@ -171,7 +179,8 @@ class Parser:
                    default: string = None,
                    multiple_occurrences: bool = False,
                    help: string = None):
-        """Add an option.
+        """Add an option. Options must be added before subcommands and
+        positionals.
 
         """
 
@@ -199,7 +208,7 @@ class Parser:
                        name: string,
                        multiple_occurrences: bool = False,
                        help: string = None):
-        """Add a positional.
+        """Add a positional. Positionals cannot be mixed with subcommands.
 
         """
 
@@ -218,7 +227,7 @@ class Parser:
     def add_subcommand(self,
                        name: string,
                        help: string = None) -> Parser:
-        """Add a subcommand.
+        """Add a subcommand. Subcommands cannot be mixed with positionals.
 
         """
 
@@ -231,7 +240,7 @@ class Parser:
         return parser
 
     def parse(self, argv: [string]) -> Args:
-        """Parse given arguments.
+        """Parse given arguments and return them.
 
         """
 
