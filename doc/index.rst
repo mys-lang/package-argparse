@@ -1,7 +1,9 @@
+|test|_
+
 About
 =====
 
-A command line argument parser in the `Mys programming language`_.
+A command line argument parser.
 
 Project: https://github.com/mys-lang/package-argparse
 
@@ -55,4 +57,5 @@ Functions and types
 
 .. mysfile:: src/lib.mys
 
-.. _Mys programming language: https://mys.readthedocs.io/en/latest/
+.. |test| image:: https://github.com/mys-lang/package-argparse/actions/workflows/pythonpackage.yml/badge.svg
+.. _test: https://github.com/mys-lang/package-argparse/actions/workflows/pythonpackage.yml
