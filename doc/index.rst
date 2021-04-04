@@ -3,7 +3,7 @@
 About
 =====
 
-A command line argument parser.
+A command line argument parser in the `Mys programming language`_.
 
 Project: https://github.com/mys-lang/package-argparse
 
@@ -59,3 +59,5 @@ Functions and types
 
 .. |test| image:: https://github.com/mys-lang/package-argparse/actions/workflows/pythonpackage.yml/badge.svg
 .. _test: https://github.com/mys-lang/package-argparse/actions/workflows/pythonpackage.yml
+
+.. _Mys programming language: https://mys-lang.org
