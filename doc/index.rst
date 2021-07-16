@@ -52,8 +52,8 @@ Show help:
 
      file A file.
 
-Functions and types
-===================
+API
+===
 
 .. mysfile:: src/lib.mys
 

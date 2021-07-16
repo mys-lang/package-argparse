@@ -18,7 +18,7 @@ class _Option:
                  help: string):
         if multiple_occurrences and default is not None:
             raise ArgparseError(
-                "multiple occurrences options can not have a default value")
+                "multiple occurrences options cannot have a default value")
 
         self.name = name
         self.short = short
@@ -82,14 +82,14 @@ class Args:
 
     """
 
-    _options: {string: i32}
+    _options: {string: i64}
     _single_values: {string: string}
     _multiple_values: {string: [string]}
     _subcommand: (string, Args)
     remaining: [string]
 
     def __init__(self,
-                 options: {string: i32},
+                 options: {string: i64},
                  single_values: {string: string},
                  multiple_values: {string: [string]},
                  subcommand: (string, Args)):
@@ -107,7 +107,7 @@ class Args:
 
         return self.occurrences_of(arg) > 0
 
-    def occurrences_of(self, arg: string) -> u32:
+    def occurrences_of(self, arg: string) -> u64:
         """Returns the number of times given presence (boolean) option was
         given.
 
@@ -118,7 +118,7 @@ class Args:
         if count == -1:
             raise ArgparseError(f"{arg} does not exist")
 
-        return u32(count)
+        return u64(count)
 
     def value_of(self, arg: string) -> string:
         """Returns the value of given option or positional. Raises an error
@@ -213,7 +213,7 @@ class Parser:
         """
 
         if self._subcommands != []:
-            raise ArgparseError("positionals and subcommands can not be mixed")
+            raise ArgparseError("positionals and subcommands cannot be mixed")
 
         if self._positionals != []:
             if self._positionals[-1].multiple_occurrences:
@@ -232,7 +232,7 @@ class Parser:
         """
 
         if self._positionals != []:
-            raise ArgparseError("positionals and subcommands can not be mixed")
+            raise ArgparseError("positionals and subcommands cannot be mixed")
 
         parser = Parser(name, help=help, parent=self)
         self._subcommands.append(parser)
@@ -380,7 +380,7 @@ class Parser:
 
     def _parse_options(self,
                        reader: _Reader,
-                       options: {string: i32},
+                       options: {string: i64},
                        single_values: {string: string},
                        multiple_values: {string: [string]}):
         while reader.available():
@@ -454,7 +454,7 @@ class Parser:
                     multiple_values[name].append(reader.get())
 
     def parse_inner(self, reader: _Reader) -> Args:
-        options: {string: i32} = {}
+        options: {string: i64} = {}
         single_values: {string: string} = {}
         multiple_values: {string: [string]} = {}
         subcommand: (string, Args) = None
@@ -641,7 +641,7 @@ def test_add_subcommand_after_positional():
     except ArgparseError as e:
         message = e.message
 
-    assert message == "positionals and subcommands can not be mixed"
+    assert message == "positionals and subcommands cannot be mixed"
 
 @test
 def test_add_positional_after_subcommand():
@@ -654,7 +654,7 @@ def test_add_positional_after_subcommand():
     except ArgparseError as e:
         message = e.message
 
-    assert message == "positionals and subcommands can not be mixed"
+    assert message == "positionals and subcommands cannot be mixed"
 
 @test
 def test_add_invalid_option():
