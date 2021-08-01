@@ -30,17 +30,21 @@ Examples
 
 Build and run:
 
-.. code-block:: text
+.. code-block:: myscon
 
-   $ mys run -- --verbose foobar.txt
+   ❯ mys run -- --verbose foobar.txt
+    ✔ Reading package configuration (0 seconds)
+    ✔ Building (0.01 seconds)
    File:                 foobar.txt
    Number of --verbose:  1
 
 Show help:
 
-.. code-block:: text
+.. code-block:: myscon
 
-   $ mys run -- --help
+   ❯ mys run -- --help
+    ✔ Reading package configuration (0 seconds)
+    ✔ Building (0.01 seconds)
    Usage: tar ...
 
    Options:
