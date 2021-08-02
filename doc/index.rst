@@ -12,7 +12,7 @@ Project: https://github.com/mys-lang/package-argparse
 Examples
 ========
 
-.. code-block:: python
+.. code-block:: mys
 
    from argparse import Parser
 
