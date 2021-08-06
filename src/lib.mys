@@ -260,8 +260,23 @@ class Parser:
 
     def print_help(self):
         prefix = self.format_usage_prefix()
+        suffixes: [string] = []
 
-        print(f"Usage: {prefix}{self.name} ...")
+        if self._options != []:
+            suffixes.append("[options]")
+
+        if self._subcommands != []:
+            suffixes.append("<subcommand>")
+
+        for positional in self._positionals:
+            suffixes.append(f"<{positional.name}>")
+
+        suffix = " ".join(suffixes)
+
+        if suffix != "":
+            suffix = " " + suffix
+
+        print(f"Usage: {prefix}{self.name}{suffix}")
 
         if self.help is not None:
             print()
@@ -284,7 +299,7 @@ class Parser:
             return
 
         print()
-        print("Commands:")
+        print("Subcommands:")
 
         for subcommand in self._subcommands:
             help = ""
