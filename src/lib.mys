@@ -1,3 +1,15 @@
+def option_color(text: string) -> string:
+    return f"\x1b[33m{text}\x1b[0m"
+
+def positional_color(text: string) -> string:
+    return f"\x1b[36m{text}\x1b[0m"
+
+def subcommand_color(text: string) -> string:
+    return f"\x1b[36m{text}\x1b[0m"
+
+def bold(text: string) -> string:
+    return f"\x1b[1m{text}\x1b[0m"
+
 class ArgparseError(Error):
     message: string
 
@@ -263,20 +275,22 @@ class Parser:
         suffixes: [string] = []
 
         if self._options != []:
-            suffixes.append("[options]")
+            suffixes.append(option_color("[options]"))
 
         if self._subcommands != []:
-            suffixes.append("<subcommand>")
+            suffixes.append(subcommand_color("<subcommand>"))
 
         for positional in self._positionals:
-            suffixes.append(f"<{positional.name}>")
+            suffixes.append(positional_color(f"<{positional.name}>"))
 
         suffix = " ".join(suffixes)
 
         if suffix != "":
             suffix = " " + suffix
 
-        print(f"Usage: {prefix}{self.name}{suffix}")
+        name = bold(prefix + self.name)
+
+        print(f"Usage: {name}{suffix}")
 
         if self.help is not None:
             print()
@@ -307,7 +321,7 @@ class Parser:
             if subcommand.help is not None:
                 help = subcommand.help
 
-            print(f"  {subcommand.name}    {help}")
+            print(f"  {subcommand_color(subcommand.name)}    {help}")
 
     def _print_options_help(self):
         if self._options == []:
@@ -327,7 +341,9 @@ class Parser:
             else:
                 short = ""
 
-            print(f"  {short}{option.name}    {help}")
+            options = short + option.name
+
+            print(f"  {option_color(options)}    {help}")
 
     def _print_positionals_help(self):
         if self._positionals == []:
@@ -342,7 +358,7 @@ class Parser:
             if positional.help is not None:
                 help = positional.help
 
-            print(f"  {positional.name}    {help}")
+            print(f"  {positional_color(positional.name)}    {help}")
 
     def _find_option(self, name: string) -> _Option:
         for option in self._options:
