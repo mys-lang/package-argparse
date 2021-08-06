@@ -321,7 +321,7 @@ class Parser:
             return
 
         print()
-        print("Subcommands:")
+        print(underline("Subcommands"))
 
         for subcommand in self._subcommands:
             help = ""
