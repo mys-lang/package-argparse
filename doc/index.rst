@@ -17,7 +17,9 @@ Examples
    from argparse import Parser
 
    def main(argv: [string]):
-       parser = Parser("tar")
+       parser = Parser("basic",
+                       version=__version__,
+                       help="A basic example.")
        parser.add_option("--verbose",
                          short="-v",
                          multiple_occurrences=True,
