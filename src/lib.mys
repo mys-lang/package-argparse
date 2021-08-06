@@ -307,7 +307,7 @@ class Parser:
             if subcommand.help is not None:
                 help = subcommand.help
 
-            print(f"  {subcommand.name} {help}")
+            print(f"  {subcommand.name}    {help}")
 
     def _print_options_help(self):
         if self._options == []:
@@ -327,7 +327,7 @@ class Parser:
             else:
                 short = ""
 
-            print(f"  {short}{option.name} {help}")
+            print(f"  {short}{option.name}    {help}")
 
     def _print_positionals_help(self):
         if self._positionals == []:
@@ -342,7 +342,7 @@ class Parser:
             if positional.help is not None:
                 help = positional.help
 
-            print(f"  {positional.name} {help}")
+            print(f"  {positional.name}    {help}")
 
     def _find_option(self, name: string) -> _Option:
         for option in self._options:
