@@ -1,3 +1,5 @@
+from string import indent
+
 def option_color(text: string) -> string:
     return f"\x1b[33m{text}\x1b[0m"
 
@@ -9,6 +11,9 @@ def subcommand_color(text: string) -> string:
 
 def bold(text: string) -> string:
     return f"\x1b[1m{text}\x1b[0m"
+
+def underline(text: string) -> string:
+    return f"\x1b[4m{text}\x1b[0m"
 
 class ArgparseError(Error):
     message: string
@@ -271,7 +276,7 @@ class Parser:
         return args
 
     def print_help(self):
-        prefix = self.format_usage_prefix()
+        prefix = self.format_synopsis_prefix()
         suffixes: [string] = []
 
         if self._options != []:
@@ -289,20 +294,23 @@ class Parser:
             suffix = " " + suffix
 
         name = bold(prefix + self.name)
-
-        print(f"Usage: {name}{suffix}")
+        synopsis = underline("Synopsis")
+        
+        print(synopsis)
+        print(f"  {name}{suffix}")
 
         if self.help is not None:
             print()
-            print(self.help)
+            print(underline("Description"))
+            print(indent(self.help, "  "))
 
         self._print_subcommands_help()
         self._print_options_help()
         self._print_positionals_help()
 
-    def format_usage_prefix(self) -> string:
+    def format_synopsis_prefix(self) -> string:
         if self._parent is not None:
-            prefix = self._parent.format_usage_prefix()
+            prefix = self._parent.format_synopsis_prefix()
 
             return f"{prefix}{self._parent.name} "
         else:
@@ -328,7 +336,7 @@ class Parser:
             return
 
         print()
-        print("Options:")
+        print(underline("Options"))
 
         for option in self._options:
             help = ""
@@ -350,7 +358,7 @@ class Parser:
             return
 
         print()
-        print("Positionals:")
+        print(underline("Positionals"))
 
         for positional in self._positionals:
             help = ""
