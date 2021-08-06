@@ -305,8 +305,8 @@ class Parser:
             print(indent(self.help, "  "))
 
         self._print_subcommands_help()
-        self._print_options_help()
         self._print_positionals_help()
+        self._print_options_help()
 
     def format_synopsis_prefix(self) -> string:
         if self._parent is not None:
