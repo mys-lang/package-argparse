@@ -285,7 +285,6 @@ class Parser:
 
         print()
         print("Commands:")
-        print()
 
         for subcommand in self._subcommands:
             help = ""
@@ -301,7 +300,6 @@ class Parser:
 
         print()
         print("Options:")
-        print()
 
         for option in self._options:
             help = ""
@@ -322,7 +320,6 @@ class Parser:
 
         print()
         print("Positionals:")
-        print()
 
         for positional in self._positionals:
             help = ""

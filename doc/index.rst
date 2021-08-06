@@ -50,12 +50,10 @@ Show help:
    Usage: tar ...
 
    Options:
-
      -h, --help Show this help.
      -v, --verbose Verbose output.
 
    Positionals:
-
      file A file.
 
 API
