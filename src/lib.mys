@@ -1,18 +1,18 @@
 from string import indent
 
-def option_color(text: string) -> string:
+def _option_color(text: string) -> string:
     return f"\x1b[33m{text}\x1b[0m"
 
-def positional_color(text: string) -> string:
+def _positional_color(text: string) -> string:
     return f"\x1b[36m{text}\x1b[0m"
 
-def subcommand_color(text: string) -> string:
+def _subcommand_color(text: string) -> string:
     return f"\x1b[36m{text}\x1b[0m"
 
-def bold(text: string) -> string:
+def _bold(text: string) -> string:
     return f"\x1b[1m{text}\x1b[0m"
 
-def underline(text: string) -> string:
+def _underline(text: string) -> string:
     return f"\x1b[4m{text}\x1b[0m"
 
 class ArgparseError(Error):
@@ -280,28 +280,28 @@ class Parser:
         suffixes: [string] = []
 
         if self._options != []:
-            suffixes.append(option_color("[options]"))
+            suffixes.append(_option_color("[options]"))
 
         if self._subcommands != []:
-            suffixes.append(subcommand_color("<subcommand>"))
+            suffixes.append(_subcommand_color("<subcommand>"))
 
         for positional in self._positionals:
-            suffixes.append(positional_color(f"<{positional.name}>"))
+            suffixes.append(_positional_color(f"<{positional.name}>"))
 
         suffix = " ".join(suffixes)
 
         if suffix != "":
             suffix = " " + suffix
 
-        name = bold(prefix + self.name)
-        synopsis = underline("Synopsis")
+        name = _bold(prefix + self.name)
+        synopsis = _underline("Synopsis")
         
         print(synopsis)
         print(f"  {name}{suffix}")
 
         if self.help is not None:
             print()
-            print(underline("Description"))
+            print(_underline("Description"))
             print(indent(self.help, "  "))
 
         self._print_subcommands_help()
@@ -321,7 +321,7 @@ class Parser:
             return
 
         print()
-        print(underline("Subcommands"))
+        print(_underline("Subcommands"))
 
         for subcommand in self._subcommands:
             help = ""
@@ -329,14 +329,14 @@ class Parser:
             if subcommand.help is not None:
                 help = subcommand.help
 
-            print(f"  {subcommand_color(subcommand.name)}    {help}")
+            print(f"  {_subcommand_color(subcommand.name)}    {help}")
 
     def _print_options_help(self):
         if self._options == []:
             return
 
         print()
-        print(underline("Options"))
+        print(_underline("Options"))
 
         for option in self._options:
             help = ""
@@ -351,14 +351,14 @@ class Parser:
 
             options = short + option.name
 
-            print(f"  {option_color(options)}    {help}")
+            print(f"  {_option_color(options)}    {help}")
 
     def _print_positionals_help(self):
         if self._positionals == []:
             return
 
         print()
-        print(underline("Positionals"))
+        print(_underline("Positionals"))
 
         for positional in self._positionals:
             help = ""
@@ -366,7 +366,7 @@ class Parser:
             if positional.help is not None:
                 help = positional.help
 
-            print(f"  {positional_color(positional.name)}    {help}")
+            print(f"  {_positional_color(positional.name)}    {help}")
 
     def _find_option(self, name: string) -> _Option:
         for option in self._options:
