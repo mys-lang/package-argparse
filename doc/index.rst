@@ -49,17 +49,19 @@ Show help:
    ❯ mys run -- --help
     ✔ Reading package configuration (0 seconds)
     ✔ Building (0.01 seconds)
-   Usage: basic [options] <file>
+   Synopsis
+     basic [options] <file>
 
-   A basic example.
+   Description
+     A basic example.
 
-   Options:
+   Positionals
+     file    A file.
+
+   Options
      -h, --help       Show this help.
      --version        Show version infomation.
      -v, --verbose    Verbose output.
-
-   Positionals:
-     file    A file.
 
 API
 ===
