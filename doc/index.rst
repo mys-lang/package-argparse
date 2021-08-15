@@ -54,8 +54,8 @@ Show help:
    A basic example.
 
    Options:
-     -h, --help    Show this help.
-     --version    Show version infomation.
+     -h, --help       Show this help.
+     --version        Show version infomation.
      -v, --verbose    Verbose output.
 
    Positionals:
