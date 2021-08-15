@@ -15,6 +15,12 @@ def _bold(text: string) -> string:
 def _underline(text: string) -> string:
     return f"\x1b[4m{text}\x1b[0m"
 
+def _pad(value: string, count: i64) -> string:
+    for _ in range(count):
+        value += ' '
+
+    return value
+
 class ArgparseError(Error):
     message: string
 
@@ -322,6 +328,8 @@ class Parser:
 
         print()
         print(_underline("Subcommands"))
+        entries: [(string, i64, string)] = []
+        longest_name: i64 = 0
 
         for subcommand in self._subcommands:
             help = ""
@@ -329,7 +337,14 @@ class Parser:
             if subcommand.help is not None:
                 help = subcommand.help
 
-            print(f"  {_subcommand_color(subcommand.name)}    {help}")
+            name = subcommand.name
+            name_length = i64(len(name))
+            longest_name = max(name_length, longest_name)
+            entries.append((name, name_length, help))
+
+        for name, name_length, help in entries:
+            name = _pad(name, longest_name - name_length)
+            print(f"  {_subcommand_color(name)}    {help}")
 
     def _print_options_help(self):
         if self._options == []:
@@ -337,6 +352,8 @@ class Parser:
 
         print()
         print(_underline("Options"))
+        entries: [(string, i64, string)] = []
+        longest_options: i64 = 0
 
         for option in self._options:
             help = ""
@@ -350,7 +367,12 @@ class Parser:
                 short = ""
 
             options = short + option.name
+            options_length = i64(len(options))
+            longest_options = max(options_length, longest_options)
+            entries.append((options, options_length, help))
 
+        for options, options_length, help in entries:
+            options = _pad(options, longest_options - options_length)
             print(f"  {_option_color(options)}    {help}")
 
     def _print_positionals_help(self):
@@ -359,6 +381,8 @@ class Parser:
 
         print()
         print(_underline("Positionals"))
+        entries: [(string, i64, string)] = []
+        longest_name: i64 = 0
 
         for positional in self._positionals:
             help = ""
@@ -366,7 +390,14 @@ class Parser:
             if positional.help is not None:
                 help = positional.help
 
-            print(f"  {_positional_color(positional.name)}    {help}")
+            name = positional.name
+            name_length = i64(len(name))
+            longest_name = max(name_length, longest_name)
+            entries.append((name, name_length, help))
+
+        for name, name_length, help in entries:
+            name = _pad(name, longest_name - name_length)
+            print(f"  {_positional_color(name)}    {help}")
 
     def _find_option(self, name: string) -> _Option:
         for option in self._options:
