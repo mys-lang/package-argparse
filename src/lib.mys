@@ -182,7 +182,7 @@ class Parser:
     _subcommands: [Parser]
 
     def __init__(self,
-                 name: string,
+                 name: string = None,
                  help: string = None,
                  version: string = None,
                  parent: Parser = None):
@@ -266,6 +266,9 @@ class Parser:
         """Parse given arguments and return them.
 
         """
+
+        if self.name is None and len(argv) > 0:
+            self.name = argv[0]
 
         reader = _Reader(argv, pos=1)
         args = self.parse_inner(reader)
@@ -886,3 +889,9 @@ def test_missing_positional():
         message = e.message
 
     assert message == "positional argument 'cat' missing"
+
+@test
+def test_no_name():
+    parser = Parser()
+    parser.parse(["bar"])
+    assert parser.name == "bar"
