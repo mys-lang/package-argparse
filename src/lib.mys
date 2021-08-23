@@ -262,7 +262,7 @@ class Parser:
 
         return parser
 
-    def parse(self, argv: [string]) -> Args:
+    def parse(self, argv: [string], exit_on_error: bool = True) -> Args:
         """Parse given arguments and return them.
 
         """
@@ -271,18 +271,25 @@ class Parser:
             self.name = argv[0]
 
         reader = _Reader(argv, pos=1)
-        args = self.parse_inner(reader)
 
-        if reader.available():
-            arg = reader.get()
+        try:
+            args = self.parse_inner(reader)
 
-            if arg == "--":
-                while reader.available():
-                    args.remaining.append(reader.get())
+            if reader.available():
+                arg = reader.get()
+
+                if arg == "--":
+                    while reader.available():
+                        args.remaining.append(reader.get())
+                else:
+                    raise ArgparseError(f"all arguments were not used")
+
+            return args
+        except ArgparseError as error:
+            if exit_on_error:
+                raise SystemExitError(f"error: {error.message}")
             else:
-                raise ArgparseError(f"all arguments were not used")
-
-        return args
+                raise
 
     def print_help(self):
         prefix = self.format_synopsis_prefix()
@@ -604,8 +611,8 @@ def test_add_option_after_positional():
     try:
         message = ""
         parser.add_option("--verbose")
-    except ArgparseError as e:
-        message = e.message
+    except ArgparseError as error:
+        message = error.message
 
     assert message == (
         "options must be added before subcommands and positionals")
@@ -618,8 +625,8 @@ def test_add_multiple_occurrences_positional_before_positional():
     try:
         message = ""
         parser.add_option("in")
-    except ArgparseError as e:
-        message = e.message
+    except ArgparseError as error:
+        message = error.message
 
     assert message == (
         "options must be added before subcommands and positionals")
@@ -669,9 +676,9 @@ def test_no_version():
 
     try:
         message = ""
-        parser.parse(["foo", "--version"])
-    except ArgparseError as e:
-        message = e.message
+        parser.parse(["foo", "--version"], exit_on_error=False)
+    except ArgparseError as error:
+        message = error.message
 
     assert message == "invalid option '--version'"
 
@@ -695,8 +702,8 @@ def test_is_present_bad_option():
     try:
         message = ""
         args.is_present("--foo")
-    except ArgparseError as e:
-        message = e.message
+    except ArgparseError as error:
+        message = error.message
 
     assert message == "--foo does not exist"
 
@@ -708,8 +715,8 @@ def test_add_subcommand_after_positional():
     try:
         message = ""
         parser.add_subcommand("cat")
-    except ArgparseError as e:
-        message = e.message
+    except ArgparseError as error:
+        message = error.message
 
     assert message == "positionals and subcommands cannot be mixed"
 
@@ -721,8 +728,8 @@ def test_add_positional_after_subcommand():
     try:
         message = ""
         parser.add_positional("foo")
-    except ArgparseError as e:
-        message = e.message
+    except ArgparseError as error:
+        message = error.message
 
     assert message == "positionals and subcommands cannot be mixed"
 
@@ -733,8 +740,8 @@ def test_add_invalid_option():
     try:
         message = ""
         parser.add_option("cat")
-    except ArgparseError as e:
-        message = e.message
+    except ArgparseError as error:
+        message = error.message
 
     assert message == "long options must start with '--'"
 
@@ -745,8 +752,8 @@ def test_add_invalid_short_option_1():
     try:
         message = ""
         parser.add_option("--cat", short="d")
-    except ArgparseError as e:
-        message = e.message
+    except ArgparseError as error:
+        message = error.message
 
     assert message == (
         "short options must be a '-' followed by any character except '-'")
@@ -758,8 +765,8 @@ def test_add_invalid_short_option_2():
     try:
         message = ""
         parser.add_option("--cat", short="--g")
-    except ArgparseError as e:
-        message = e.message
+    except ArgparseError as error:
+        message = error.message
 
     assert message == (
         "short options must be a '-' followed by any character except '-'")
@@ -771,8 +778,8 @@ def test_add_invalid_short_option_3():
     try:
         message = ""
         parser.add_option("--cat", short="--")
-    except ArgparseError as e:
-        message = e.message
+    except ArgparseError as error:
+        message = error.message
 
     assert message == (
         "short options must be a '-' followed by any character except '-'")
@@ -784,9 +791,9 @@ def test_invalid_suncommand():
 
     try:
         message = ""
-        parser.parse(["bar", "foo"])
-    except ArgparseError as e:
-        message = e.message
+        parser.parse(["bar", "foo"], exit_on_error=False)
+    except ArgparseError as error:
+        message = error.message
 
     assert message == "invalid subcommand 'foo'"
 
@@ -797,9 +804,9 @@ def test_single_option_given_multiple_times():
 
     try:
         message = ""
-        parser.parse(["bar", "--cat", "--cat"])
-    except ArgparseError as e:
-        message = e.message
+        parser.parse(["bar", "--cat", "--cat"], exit_on_error=False)
+    except ArgparseError as error:
+        message = error.message
 
     assert message == "'--cat' can only be given once"
 
@@ -810,9 +817,9 @@ def test_all_arguments_not_used():
 
     try:
         message = ""
-        parser.parse(["bar", "apa", "ko"])
-    except ArgparseError as e:
-        message = e.message
+        parser.parse(["bar", "apa", "ko"], exit_on_error=False)
+    except ArgparseError as error:
+        message = error.message
 
     assert message == "all arguments were not used"
 
@@ -858,9 +865,9 @@ def test_multiple_occurrences_option_that_takes_value_missing_value():
 
     try:
         message = ""
-        parser.parse(["bar", "--cat", "1", "--cat"])
-    except ArgparseError as e:
-        message = e.message
+        parser.parse(["bar", "--cat", "1", "--cat"], exit_on_error=False)
+    except ArgparseError as error:
+        message = error.message
 
     assert message == "out of data"
 
@@ -871,9 +878,9 @@ def test_single_occurrence_option_that_takes_value_given_twice():
 
     try:
         message = ""
-        parser.parse(["bar", "--cat", "1", "--cat", "2"])
-    except ArgparseError as e:
-        message = e.message
+        parser.parse(["bar", "--cat", "1", "--cat", "2"], exit_on_error=False)
+    except ArgparseError as error:
+        message = error.message
 
     assert message == "'--cat' can only be given once"
 
@@ -884,9 +891,9 @@ def test_missing_positional():
 
     try:
         message = ""
-        parser.parse(["bar"])
-    except ArgparseError as e:
-        message = e.message
+        parser.parse(["bar"], exit_on_error=False)
+    except ArgparseError as error:
+        message = error.message
 
     assert message == "positional argument 'cat' missing"
 
@@ -895,3 +902,15 @@ def test_no_name():
     parser = Parser()
     parser.parse(["bar"])
     assert parser.name == "bar"
+
+@test
+def test_exit_on_error():
+    parser = Parser()
+
+    try:
+        message = ""
+        parser.parse(["foo", "--version"])
+    except SystemExitError as error:
+        message = str(error)
+
+    assert message == "SystemExitError(message=\"error: invalid option '--version'\")"
