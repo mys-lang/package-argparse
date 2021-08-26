@@ -282,7 +282,9 @@ class Parser:
                     while reader.available():
                         args.remaining.append(reader.get())
                 else:
-                    raise ArgparseError(f"all arguments were not used")
+                    raise ArgparseError(
+                        f"unexpected argument '{arg}' when no more arguments "
+                        "were expected")
 
             return args
         except ArgparseError as error:
@@ -791,7 +793,8 @@ def test_all_arguments_not_used():
         parser.parse(["bar", "apa", "ko"], exit_on_error=False)
         assert False
     except ArgparseError as error:
-        assert error.message == "all arguments were not used"
+        assert error.message == (
+            "unexpected argument 'ko' when no more arguments were expected")
 
 @test
 def test_end_of_arguments():
