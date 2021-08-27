@@ -262,8 +262,18 @@ class Parser:
 
         return parser
 
-    def parse(self, argv: [string], exit_on_error: bool = True) -> Args:
+    def parse(self,
+              argv: [string],
+              exit_on_error: bool = True,
+              allow_remaining: bool = False) -> Args:
         """Parse given arguments and return them.
+
+        Give exit_on_error as False to raise an exception instead of
+        exiting if an error occurs.
+
+        Give allow_remaining to allow more non-option arguments than
+        the parser expects. Remaining arguments are part of the
+        returned value.
 
         """
 
@@ -276,15 +286,11 @@ class Parser:
             args = self.parse_inner(reader)
 
             if reader.available():
-                arg = reader.get()
-
-                if arg == "--":
+                if allow_remaining:
                     while reader.available():
                         args.remaining.append(reader.get())
                 else:
-                    raise ArgparseError(
-                        f"unexpected argument '{arg}' when no more arguments "
-                        "were expected")
+                    raise ArgparseError(f"found unexpected argument '{reader.get()}'")
 
             return args
         except ArgparseError as error:
@@ -470,7 +476,6 @@ class Parser:
                 break
 
             if option_name == "--":
-                reader.unget()
                 break
 
             for name in self._expand_option(option_name):
@@ -793,26 +798,33 @@ def test_all_arguments_not_used():
         parser.parse(["bar", "apa", "ko"], exit_on_error=False)
         assert False
     except ArgparseError as error:
-        assert error.message == (
-            "unexpected argument 'ko' when no more arguments were expected")
+        assert error.message == "found unexpected argument 'ko'"
 
 @test
-def test_end_of_arguments():
+def test_allow_remaining():
+    parser = Parser("bar")
+
+    args = parser.parse(["bar", "apa"], allow_remaining=True)
+
+    assert args.remaining == ["apa"]
+
+@test
+def test_allow_remaining_option_after_dash_dash():
     parser = Parser("bar")
     parser.add_option("--cat")
 
-    args = parser.parse(["bar", "--", "--cat", "apa"])
+    args = parser.parse(["bar", "--", "--cat", "apa"], allow_remaining=True)
 
     assert not args.is_present("--cat")
     assert args.remaining == ["--cat", "apa"]
 
 @test
-def test_end_of_arguments_with_subparser():
+def test_allow_remaining_with_subparser():
     parser = Parser("bar")
     cat = parser.add_subcommand("cat")
     cat.add_option("--foo")
 
-    args = parser.parse(["bar", "cat", "--", "apa", "--foo"])
+    args = parser.parse(["bar", "cat", "--", "apa", "--foo"], allow_remaining=True)
 
     assert args.remaining == ["apa", "--foo"]
 
