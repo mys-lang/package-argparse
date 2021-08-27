@@ -478,6 +478,9 @@ class Parser:
             if option_name == "--":
                 break
 
+            if option_name == "-":
+                raise ArgparseError("invalid option '-'")
+
             for name in self._expand_option(option_name):
                 option = self._find_option(name)
 
@@ -892,3 +895,13 @@ def test_exit_on_error():
     except SystemExitError as error:
         assert str(error) == (
             "SystemExitError(message=\"error: invalid option '--version'\")")
+
+@test
+def test_bad_option_single_dash():
+    parser = Parser()
+
+    try:
+        parser.parse(["foo", "-"], exit_on_error=False)
+        assert False
+    except ArgparseError as error:
+        assert error.message == "invalid option '-'"
