@@ -515,6 +515,9 @@ class Parser:
                 elif option.is_multiple_flag():
                     options[name] += 1
                 else:
+                    if not reader.available():
+                        raise ArgparseError(f"value missing for option '{option_name}'")
+
                     value = reader.get()
 
                     if option.choices is not None:
@@ -902,7 +905,18 @@ def test_multiple_occurrences_option_that_takes_value_missing_value():
         parser.parse(["bar", "--cat", "1", "--cat"], exit_on_error=False)
         assert False
     except ArgparseError as error:
-        assert error.message == "out of data"
+        assert error.message == "value missing for option '--cat'"
+
+@test
+def test_option_missing_value():
+    parser = Parser()
+    parser.add_option("--boo", takes_value=True)
+
+    try:
+        parser.parse(["a", "--boo"], exit_on_error=False)
+        assert False
+    except ArgparseError as error:
+        assert error.message == "value missing for option '--boo'"
 
 @test
 def test_single_occurrence_option_that_takes_value_given_twice():
