@@ -1,6 +1,6 @@
 from string import indent
-from string import join_or
 from string import join_and
+from string import join_or
 
 def _option_color(text: string) -> string:
     return f"\x1b[33m{text}\x1b[0m"
@@ -304,7 +304,7 @@ class Parser:
                     while reader.available():
                         args.remaining.append(reader.get())
                 else:
-                    raise ArgparseError(f"found unexpected argument '{reader.get()}'")
+                    raise ArgparseError(f"unexpected argument '{reader.get()}'")
 
             return args
         except ArgparseError as error:
@@ -493,7 +493,8 @@ class Parser:
                 break
 
             if option_name == "-":
-                raise ArgparseError("invalid option '-'")
+                reader.unget()
+                break
 
             for name in self._expand_option(option_name):
                 option = self._find_option(name)
@@ -841,7 +842,7 @@ def test_all_arguments_not_used():
         parser.parse(["bar", "apa", "ko"], exit_on_error=False)
         assert False
     except ArgparseError as error:
-        assert error.message == "found unexpected argument 'ko'"
+        assert error.message == "unexpected argument 'ko'"
 
 @test
 def test_allow_remaining():
@@ -944,7 +945,7 @@ def test_bad_option_single_dash():
         parser.parse(["foo", "-"], exit_on_error=False)
         assert False
     except ArgparseError as error:
-        assert error.message == "invalid option '-'"
+        assert error.message == "unexpected argument '-'"
 
 @test
 def test_option_choices():
@@ -983,3 +984,27 @@ def test_positional_choices():
     except ArgparseError as error:
         assert error.message == (
             "invalid value 'c' to positional 'cat', choose from 'a' and 'b'")
+
+@test
+def test_end_of_options():
+    parser = Parser()
+    parser.add_option("--cat")
+    foo = parser.add_subcommand("foo")
+    foo.add_option("--cat")
+    foo.add_positional("in")
+    foo.add_positional("out")
+
+    try:
+        parser.parse(["bar", "--", "--cat"], exit_on_error=False)
+        assert False
+    except ArgparseError as error:
+        assert error.message == "invalid subcommand '--cat', choose from 'foo'"
+
+    args = parser.parse(["bar", "--", "foo", "-", "-"])
+    _, args = args.subcommand()
+    assert args.value_of("in") == "-"
+    assert args.value_of("out") == "-"
+
+    args = parser.parse(["bar", "--", "foo", "--", "-", "-"])
+    _, args = args.subcommand()
+    assert args.value_of("out") == "-"
