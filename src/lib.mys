@@ -551,7 +551,7 @@ class Parser:
                               name: string,
                               reader: _Reader) -> string:
         if not reader.available():
-            raise ArgparseError(f"positional argument '{name}' missing")
+            raise ArgparseError(f"positional '{name}' missing")
 
         return reader.get()
 
@@ -568,7 +568,7 @@ class Parser:
                     choices = [f"'{choice}'" for choice in positional.choices]
 
                     raise ArgparseError(
-                        f"invalid value '{value}' to positional <{name}>, choose "
+                        f"invalid value '{value}' to positional '{name}', choose "
                         f"from {join_and(choices)}")
 
             if positional.is_single_value():
@@ -917,7 +917,7 @@ def test_missing_positional():
         parser.parse(["bar"], exit_on_error=False)
         assert False
     except ArgparseError as error:
-        assert error.message == "positional argument 'cat' missing"
+        assert error.message == "positional 'cat' missing"
 
 @test
 def test_no_name():
@@ -982,4 +982,4 @@ def test_positional_choices():
         assert False
     except ArgparseError as error:
         assert error.message == (
-            "invalid value 'c' to positional <cat>, choose from 'a' and 'b'")
+            "invalid value 'c' to positional 'cat', choose from 'a' and 'b'")
