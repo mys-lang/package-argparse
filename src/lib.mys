@@ -248,6 +248,9 @@ class Parser:
 
         """
 
+        if name.starts_with("-"):
+            raise ArgparseError("positionals must not start with '-'")
+
         if self._subcommands != []:
             raise ArgparseError("positionals and subcommands cannot be mixed")
 
@@ -267,6 +270,9 @@ class Parser:
         """Add a subcommand. Subcommands cannot be mixed with positionals.
 
         """
+
+        if name.starts_with("-"):
+            raise ArgparseError("subcommands must not start with '-'")
 
         if self._positionals != []:
             raise ArgparseError("positionals and subcommands cannot be mixed")
@@ -1008,3 +1014,23 @@ def test_end_of_options():
     args = parser.parse(["bar", "--", "foo", "--", "-", "-"])
     _, args = args.subcommand()
     assert args.value_of("out") == "-"
+
+@test
+def test_positional_name_must_not_start_with_dash():
+    parser = Parser()
+
+    try:
+        parser.add_positional("--out")
+        assert False
+    except ArgparseError as error:
+        assert error.message == "positionals must not start with '-'"
+
+@test
+def test_subcommand_name_must_not_start_with_dash():
+    parser = Parser()
+
+    try:
+        parser.add_subcommand("--out")
+        assert False
+    except ArgparseError as error:
+        assert error.message == "subcommands must not start with '-'"
