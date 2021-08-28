@@ -1,4 +1,5 @@
 from string import indent
+from string import join_or
 from string import join_and
 
 def _option_color(text: string) -> string:
@@ -31,6 +32,7 @@ class _Option:
     takes_value: bool
     default: string
     multiple_occurrences: bool
+    choices: [string]
     help: string
 
     def __init__(self,
@@ -39,10 +41,16 @@ class _Option:
                  takes_value: bool,
                  default: string,
                  multiple_occurrences: bool,
+                 choices: [string],
                  help: string):
         if multiple_occurrences and default is not None:
             raise ArgparseError(
                 "multiple occurrences options cannot have a default value")
+
+        if choices is not None and default is not None:
+            if default not in choices:
+                raise ArgparseError(
+                    f"default value {default} must be {join_or(choices)}")
 
         self.name = name
         self.short = short
@@ -53,6 +61,7 @@ class _Option:
             self.takes_value = True
 
         self.multiple_occurrences = multiple_occurrences
+        self.choices = choices
         self.help = help
 
     def is_flag(self) -> bool:
@@ -73,6 +82,7 @@ class _Option:
 class _Positional:
     name: string
     multiple_occurrences: bool
+    choices: [string]
     help: string
 
     def is_single_value(self) -> bool:
@@ -201,6 +211,7 @@ class Parser:
                    takes_value: bool = False,
                    default: string = None,
                    multiple_occurrences: bool = False,
+                   choices: [string] = None,
                    help: string = None):
         """Add an option. Options must be added before subcommands and
         positionals.
@@ -225,11 +236,13 @@ class Parser:
                                      takes_value,
                                      default,
                                      multiple_occurrences,
+                                     choices,
                                      help))
 
     def add_positional(self,
                        name: string,
                        multiple_occurrences: bool = False,
+                       choices: [string] = None,
                        help: string = None):
         """Add a positional. Positionals cannot be mixed with subcommands.
 
@@ -245,6 +258,7 @@ class Parser:
 
         self._positionals.append(_Positional(name,
                                              multiple_occurrences,
+                                             choices,
                                              help))
 
     def add_subcommand(self,
@@ -493,26 +507,41 @@ class Parser:
                     options[name] = 1
                 elif option.is_multiple_flag():
                     options[name] += 1
-                elif option.is_single_value():
-                    if single_values[name] is not None:
-                        raise ArgparseError(f"'{name}' can only be given once")
-
-                    single_values[name] = reader.get()
                 else:
-                    multiple_values[name].append(reader.get())
+                    value = reader.get()
+
+                    if option.choices is not None:
+                        if value not in option.choices:
+                            choices = [f"'{choice}'" for choice in option.choices]
+
+                            raise ArgparseError(
+                                f"invalid value '{value}' to option --cat, choose "
+                                f"from {join_and(choices)}")
+
+                    if option.is_single_value():
+                        if single_values[name] is not None:
+                            raise ArgparseError(f"'{name}' can only be given once")
+
+                        single_values[name] = value
+                    else:
+                        multiple_values[name].append(value)
 
     def _find_subcommand(self, name: string) -> Parser:
         for subcommand in self._subcommands:
             if subcommand.name == name:
                 return subcommand
 
-        raise ArgparseError(f"invalid subcommand '{name}'")
+        choices = join_and([f"'{subcommand.name}'"
+                            for subcommand in self._subcommands])
+
+        raise ArgparseError(f"invalid subcommand '{name}', choose from {choices}")
 
     def _parse_subcommand(self, reader: _Reader) -> (string, Args):
         if not reader.available():
-            must_be = join_and([f"'{subcommand.name}'"
+            choices = join_and([f"'{subcommand.name}'"
                                 for subcommand in self._subcommands])
-            raise ArgparseError(f"subcommand missing, choose from {must_be}")
+
+            raise ArgparseError(f"subcommand missing, choose from {choices}")
 
         subcommand = self._find_subcommand(reader.get())
 
@@ -533,6 +562,14 @@ class Parser:
         for positional in self._positionals:
             name = positional.name
             value = self._get_positional_value(name, reader)
+
+            if positional.choices is not None:
+                if value not in positional.choices:
+                    choices = [f"'{choice}'" for choice in positional.choices]
+
+                    raise ArgparseError(
+                        f"invalid value '{value}' to positional <{name}>, choose "
+                        f"from {join_and(choices)}")
 
             if positional.is_single_value():
                 single_values[name] = value
@@ -782,7 +819,7 @@ def test_invalid_suncommand():
         parser.parse(["bar", "foo"], exit_on_error=False)
         assert False
     except ArgparseError as error:
-        assert error.message == "invalid subcommand 'foo'"
+        assert error.message == "invalid subcommand 'foo', choose from 'cat'"
 
 @test
 def test_single_option_given_multiple_times():
@@ -908,3 +945,41 @@ def test_bad_option_single_dash():
         assert False
     except ArgparseError as error:
         assert error.message == "invalid option '-'"
+
+@test
+def test_option_choices():
+    parser = Parser("bar")
+    parser.add_option("--cat",
+                      takes_value=True,
+                      choices=["a", "b"])
+
+    args = parser.parse(["bar", "--cat", "a"])
+    assert args.value_of("--cat") == "a"
+
+    args = parser.parse(["bar", "--cat", "b"])
+    assert args.value_of("--cat") == "b"
+
+    try:
+        parser.parse(["bar", "--cat", "c"], exit_on_error=False)
+        assert False
+    except ArgparseError as error:
+        assert error.message == (
+            "invalid value 'c' to option --cat, choose from 'a' and 'b'")
+
+@test
+def test_positional_choices():
+    parser = Parser("bar")
+    parser.add_positional("cat", choices=["a", "b"])
+
+    args = parser.parse(["bar", "a"])
+    assert args.value_of("cat") == "a"
+
+    args = parser.parse(["bar", "b"])
+    assert args.value_of("cat") == "b"
+
+    try:
+        parser.parse(["bar", "c"], exit_on_error=False)
+        assert False
+    except ArgparseError as error:
+        assert error.message == (
+            "invalid value 'c' to positional <cat>, choose from 'a' and 'b'")
