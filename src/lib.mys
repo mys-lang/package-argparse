@@ -1,4 +1,5 @@
 from string import indent
+from string import join_and
 
 def _option_color(text: string) -> string:
     return f"\x1b[33m{text}\x1b[0m"
@@ -161,8 +162,7 @@ class Args:
         return self._multiple_values[arg]
 
     def subcommand(self) -> (string, Args):
-        """Returns a tuple of the subcommand and its arguments, or (None, None)
-        if no subcommand was found.
+        """Returns a tuple of the subcommand and its arguments.
 
         """
 
@@ -510,7 +510,9 @@ class Parser:
 
     def _parse_subcommand(self, reader: _Reader) -> (string, Args):
         if not reader.available():
-            return (None, None)
+            must_be = join_and([f"'{subcommand.name}'"
+                                for subcommand in self._subcommands])
+            raise ArgparseError(f"subcommand missing, choose from {must_be}")
 
         subcommand = self._find_subcommand(reader.get())
 
@@ -564,7 +566,6 @@ class Parser:
         if self._subcommands != []:
             subcommand = self._parse_subcommand(reader)
         else:
-            subcommand = (None, None)
             self._parse_positionals(reader, single_values, multiple_values)
 
         return Args(options, single_values, multiple_values, subcommand)
@@ -588,14 +589,16 @@ def test_cat_and_monkey_subcommands():
     cat.add_option("--rate", default="10000")
     cat.add_positional("food")
 
-    args = parser.parse(["foo"])
-    assert args.occurrences_of("--verbose") == 0
-    assert args.subcommand() == (None, None)
+    try:
+        parser.parse(["foo"], exit_on_error=False)
+        assert False
+    except ArgparseError as error:
+        assert error.message == "subcommand missing, choose from 'monkey' and 'cat'"
 
-    args = parser.parse(["foo", "--verbose"])
+    args = parser.parse(["foo", "--verbose", "cat", ""])
     assert args.occurrences_of("--verbose") == 1
 
-    args = parser.parse(["foo", "-vvv"])
+    args = parser.parse(["foo", "-vvv", "cat", "rat"])
     assert args.occurrences_of("--verbose") == 3
 
     args = parser.parse(["foo", "cat", "--auto", "rat"])
