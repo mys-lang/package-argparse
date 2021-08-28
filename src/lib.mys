@@ -516,7 +516,7 @@ class Parser:
                     options[name] += 1
                 else:
                     if not reader.available():
-                        raise ArgparseError(f"value missing for option '{option_name}'")
+                        raise ArgparseError(f"value missing for option '{name}'")
 
                     value = reader.get()
 
@@ -910,13 +910,14 @@ def test_multiple_occurrences_option_that_takes_value_missing_value():
 @test
 def test_option_missing_value():
     parser = Parser()
-    parser.add_option("--boo", takes_value=True)
+    parser.add_option("--aaa", short="-a", takes_value=True)
+    parser.add_option("--bbb", short="-b")
 
     try:
-        parser.parse(["a", "--boo"], exit_on_error=False)
+        parser.parse(["a", "-ab"], exit_on_error=False)
         assert False
     except ArgparseError as error:
-        assert error.message == "value missing for option '--boo'"
+        assert error.message == "value missing for option '--aaa'"
 
 @test
 def test_single_occurrence_option_that_takes_value_given_twice():
