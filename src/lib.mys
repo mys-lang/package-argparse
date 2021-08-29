@@ -2,20 +2,30 @@ from string import indent
 from string import join_and
 from string import join_or
 
+_RESET: string = "\x1b[0m"
+_BOLD: string = "\x1b[1m"
+_UNDERLINE: string = "\x1b[4m"
+_RED: string = "\x1b[31m"
+_YELLOW: string = "\x1b[33m"
+_CYAN: string = "\x1b[36m"
+
 def _option_color(text: string) -> string:
-    return f"\x1b[33m{text}\x1b[0m"
+    return f"{_YELLOW}{text}{_RESET}"
 
 def _positional_color(text: string) -> string:
-    return f"\x1b[36m{text}\x1b[0m"
+    return f"{_CYAN}{text}{_RESET}"
 
 def _subcommand_color(text: string) -> string:
-    return f"\x1b[36m{text}\x1b[0m"
+    return f"{_CYAN}{text}{_RESET}"
 
 def _bold(text: string) -> string:
-    return f"\x1b[1m{text}\x1b[0m"
+    return f"\x1b[1m{text}{_RESET}"
 
 def _underline(text: string) -> string:
-    return f"\x1b[4m{text}\x1b[0m"
+    return f"\x1b[4m{text}{_RESET}"
+
+def _error_style(text: string) -> string:
+    return f"{_RED}{_BOLD}{text}{_RESET}"
 
 def _pad(value: string, count: i64) -> string:
     for _ in range(count):
@@ -306,16 +316,25 @@ class Parser:
             args = self.parse_inner(reader)
 
             if reader.available():
+                remaining: [string] = []
+
+                while reader.available():
+                    remaining.append(reader.get())
+
                 if allow_remaining:
-                    while reader.available():
-                        args.remaining.append(reader.get())
+                    args.remaining = remaining
                 else:
-                    raise ArgparseError(f"unexpected argument '{reader.get()}'")
+                    arguments = " ".join(remaining)
+
+                    raise ArgparseError(
+                        f"too many arguments, remaining: '{arguments}'")
 
             return args
         except ArgparseError as error:
             if exit_on_error:
-                raise SystemExitError(f"error: {error.message}")
+                prefix = _error_style("error")
+
+                raise SystemExitError(f"{prefix}: {error.message}")
             else:
                 raise
 
@@ -442,14 +461,14 @@ class Parser:
             if option.name == name or option.short == name:
                 return option
 
-        raise ArgparseError(f"invalid option '{name}'")
+        raise ArgparseError(f"invalid option {_error_style(name)}")
 
     def _short_to_long_option(self, short: string) -> string:
         for option in self._options:
             if option.short == short:
                 return option.name
 
-        raise ArgparseError(f"invalid option '{short}'")
+        raise ArgparseError(f"invalid option {_error_style(short)}")
 
     def _expand_option(self, option: string) -> [string]:
         options: [string] = []
@@ -509,28 +528,33 @@ class Parser:
 
                 if option.is_single_flag():
                     if options[name] > 0:
-                        raise ArgparseError(f"'{name}' can only be given once")
+                        raise ArgparseError(
+                            f"{_option_color(name)} can only be given once")
 
                     options[name] = 1
                 elif option.is_multiple_flag():
                     options[name] += 1
                 else:
                     if not reader.available():
-                        raise ArgparseError(f"value missing for option '{name}'")
+                        raise ArgparseError(
+                            f"value missing for option {_option_color(name)}")
 
                     value = reader.get()
 
                     if option.choices is not None:
                         if value not in option.choices:
-                            choices = [f"'{choice}'" for choice in option.choices]
+                            choices = [_option_color(choice)
+                                       for choice in option.choices]
 
                             raise ArgparseError(
-                                f"invalid value '{value}' to option --cat, choose "
-                                f"from {join_and(choices)}")
+                                f"invalid value {_error_style(value)} to option "
+                                f"{_option_color(name)}, choose from "
+                                f"{join_and(choices)}")
 
                     if option.is_single_value():
                         if single_values[name] is not None:
-                            raise ArgparseError(f"'{name}' can only be given once")
+                            raise ArgparseError(
+                                f"{_option_color(name)} can only be given once")
 
                         single_values[name] = value
                     else:
@@ -541,14 +565,15 @@ class Parser:
             if subcommand.name == name:
                 return subcommand
 
-        choices = join_and([f"'{subcommand.name}'"
+        choices = join_and([_subcommand_color(subcommand.name)
                             for subcommand in self._subcommands])
 
-        raise ArgparseError(f"invalid subcommand '{name}', choose from {choices}")
+        raise ArgparseError(
+            f"invalid subcommand {_error_style(name)}, choose from {choices}")
 
     def _parse_subcommand(self, reader: _Reader) -> (string, Args):
         if not reader.available():
-            choices = join_and([f"'{subcommand.name}'"
+            choices = join_and([_subcommand_color(subcommand.name)
                                 for subcommand in self._subcommands])
 
             raise ArgparseError(f"subcommand missing, choose from {choices}")
@@ -561,7 +586,7 @@ class Parser:
                               name: string,
                               reader: _Reader) -> string:
         if not reader.available():
-            raise ArgparseError(f"positional '{name}' missing")
+            raise ArgparseError(f"positional {_positional_color(name)} missing")
 
         return reader.get()
 
@@ -575,11 +600,13 @@ class Parser:
 
             if positional.choices is not None:
                 if value not in positional.choices:
-                    choices = [f"'{choice}'" for choice in positional.choices]
+                    choices = [_positional_color(choice)
+                               for choice in positional.choices]
 
                     raise ArgparseError(
-                        f"invalid value '{value}' to positional '{name}', choose "
-                        f"from {join_and(choices)}")
+                        f"invalid value {_error_style(value)} to positional "
+                        f"{_positional_color(name)}, choose from "
+                        f"{join_and(choices)}")
 
             if positional.is_single_value():
                 single_values[name] = value
@@ -640,7 +667,9 @@ def test_cat_and_monkey_subcommands():
         parser.parse(["foo"], exit_on_error=False)
         assert False
     except ArgparseError as error:
-        assert error.message == "subcommand missing, choose from 'monkey' and 'cat'"
+        assert error.message == (
+            f"subcommand missing, choose from {_CYAN}monkey{_RESET} "
+            f"and {_CYAN}cat{_RESET}")
 
     args = parser.parse(["foo", "--verbose", "cat", ""])
     assert args.occurrences_of("--verbose") == 1
@@ -730,7 +759,7 @@ def test_no_version():
         parser.parse(["foo", "--version"], exit_on_error=False)
         assert False
     except ArgparseError as error:
-        assert error.message == "invalid option '--version'"
+        assert error.message == f"invalid option {_RED}{_BOLD}--version{_RESET}"
 
 @test
 def test_is_present():
@@ -829,7 +858,9 @@ def test_invalid_suncommand():
         parser.parse(["bar", "foo"], exit_on_error=False)
         assert False
     except ArgparseError as error:
-        assert error.message == "invalid subcommand 'foo', choose from 'cat'"
+        assert error.message == (
+            f"invalid subcommand {_RED}{_BOLD}foo{_RESET}, choose "
+            f"from {_CYAN}cat{_RESET}")
 
 @test
 def test_single_option_given_multiple_times():
@@ -840,7 +871,7 @@ def test_single_option_given_multiple_times():
         parser.parse(["bar", "--cat", "--cat"], exit_on_error=False)
         assert False
     except ArgparseError as error:
-        assert error.message == "'--cat' can only be given once"
+        assert error.message == f"{_YELLOW}--cat{_RESET} can only be given once"
 
 @test
 def test_all_arguments_not_used():
@@ -851,7 +882,7 @@ def test_all_arguments_not_used():
         parser.parse(["bar", "apa", "ko"], exit_on_error=False)
         assert False
     except ArgparseError as error:
-        assert error.message == "unexpected argument 'ko'"
+        assert error.message == "too many arguments, remaining: 'ko'"
 
 @test
 def test_allow_remaining():
@@ -905,7 +936,7 @@ def test_multiple_occurrences_option_that_takes_value_missing_value():
         parser.parse(["bar", "--cat", "1", "--cat"], exit_on_error=False)
         assert False
     except ArgparseError as error:
-        assert error.message == "value missing for option '--cat'"
+        assert error.message == f"value missing for option {_YELLOW}--cat{_RESET}"
 
 @test
 def test_option_missing_value():
@@ -917,7 +948,7 @@ def test_option_missing_value():
         parser.parse(["a", "-ab"], exit_on_error=False)
         assert False
     except ArgparseError as error:
-        assert error.message == "value missing for option '--aaa'"
+        assert error.message == f"value missing for option {_YELLOW}--aaa{_RESET}"
 
 @test
 def test_single_occurrence_option_that_takes_value_given_twice():
@@ -928,7 +959,7 @@ def test_single_occurrence_option_that_takes_value_given_twice():
         parser.parse(["bar", "--cat", "1", "--cat", "2"], exit_on_error=False)
         assert False
     except ArgparseError as error:
-        assert error.message == "'--cat' can only be given once"
+        assert error.message == f"{_YELLOW}--cat{_RESET} can only be given once"
 
 @test
 def test_missing_positional():
@@ -939,7 +970,7 @@ def test_missing_positional():
         parser.parse(["bar"], exit_on_error=False)
         assert False
     except ArgparseError as error:
-        assert error.message == "positional 'cat' missing"
+        assert error.message == f"positional {_CYAN}cat{_RESET} missing"
 
 @test
 def test_no_name():
@@ -956,7 +987,9 @@ def test_exit_on_error():
         assert False
     except SystemExitError as error:
         assert str(error) == (
-            "SystemExitError(message=\"error: invalid option '--version'\")")
+            "SystemExitError(message="
+            f"\"{_RED}{_BOLD}error{_RESET}: invalid option "
+            f"{_RED}{_BOLD}--version{_RESET}\")")
 
 @test
 def test_bad_option_single_dash():
@@ -966,7 +999,7 @@ def test_bad_option_single_dash():
         parser.parse(["foo", "-"], exit_on_error=False)
         assert False
     except ArgparseError as error:
-        assert error.message == "unexpected argument '-'"
+        assert error.message == "too many arguments, remaining: '-'"
 
 @test
 def test_option_choices():
@@ -986,7 +1019,9 @@ def test_option_choices():
         assert False
     except ArgparseError as error:
         assert error.message == (
-            "invalid value 'c' to option --cat, choose from 'a' and 'b'")
+            f"invalid value {_RED}{_BOLD}c{_RESET} to option "
+            f"{_YELLOW}--cat{_RESET}, choose from {_YELLOW}a{_RESET} and "
+            f"{_YELLOW}b{_RESET}")
 
 @test
 def test_positional_choices():
@@ -1004,7 +1039,9 @@ def test_positional_choices():
         assert False
     except ArgparseError as error:
         assert error.message == (
-            "invalid value 'c' to positional 'cat', choose from 'a' and 'b'")
+            f"invalid value {_RED}{_BOLD}c{_RESET} to positional "
+            f"{_CYAN}cat{_RESET}, choose from {_CYAN}a{_RESET} and "
+            f"{_CYAN}b{_RESET}")
 
 @test
 def test_end_of_options():
@@ -1019,7 +1056,9 @@ def test_end_of_options():
         parser.parse(["bar", "--", "--cat"], exit_on_error=False)
         assert False
     except ArgparseError as error:
-        assert error.message == "invalid subcommand '--cat', choose from 'foo'"
+        assert error.message == (
+            f"invalid subcommand {_RED}{_BOLD}--cat{_RESET}, choose "
+            f"from {_CYAN}foo{_RESET}")
 
     args = parser.parse(["bar", "--", "foo", "-", "-"])
     _, args = args.subcommand()
