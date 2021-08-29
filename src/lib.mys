@@ -33,14 +33,6 @@ def _pad(value: string, count: i64) -> string:
 
     return value
 
-def _format_option(option: _Option) -> string:
-    name = _option_color(option.name)
-
-    if option.short is not None:
-        name = f"{_option_color(option.short)}/{name}"
-
-    return name
-
 class ArgparseError(Error):
     message: string
 
@@ -537,7 +529,7 @@ class Parser:
                 if option.is_single_flag():
                     if options[name] > 0:
                         raise ArgparseError(
-                            f"{_format_option(option)} can only be given once")
+                            f"{_option_color(name)} can only be given once")
 
                     options[name] = 1
                 elif option.is_multiple_flag():
@@ -545,7 +537,7 @@ class Parser:
                 else:
                     if not reader.available():
                         raise ArgparseError(
-                            f"value missing for option {_format_option(option)}")
+                            f"value missing for option {_option_color(name)}")
 
                     value = reader.get()
 
@@ -556,13 +548,13 @@ class Parser:
 
                             raise ArgparseError(
                                 f"invalid value {_error_style(value)} to option "
-                                f"{_format_option(option)}, choose from "
+                                f"{_option_color(name)}, choose from "
                                 f"{join_and(choices)}")
 
                     if option.is_single_value():
                         if single_values[name] is not None:
                             raise ArgparseError(
-                                f"{_format_option(option)} can only be given once")
+                                f"{_option_color(name)} can only be given once")
 
                         single_values[name] = value
                     else:
@@ -956,8 +948,7 @@ def test_option_missing_value():
         parser.parse(["a", "-ab"], exit_on_error=False)
         assert False
     except ArgparseError as error:
-        assert error.message == (
-            f"value missing for option {_YELLOW}-a{_RESET}/{_YELLOW}--aaa{_RESET}")
+        assert error.message == f"value missing for option {_YELLOW}--aaa{_RESET}"
 
 @test
 def test_single_occurrence_option_that_takes_value_given_twice():
