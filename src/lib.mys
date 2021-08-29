@@ -109,9 +109,6 @@ class _Reader:
         return self._pos < len(self._argv)
 
     def get(self) -> string:
-        if not self.available():
-            raise ArgparseError("out of data")
-
         arg = self._argv[self._pos]
         self._pos += 1
 
@@ -199,6 +196,11 @@ class Parser:
     _options: [_Option]
     _positionals: [_Positional]
     _subcommands: [Parser]
+    _options_count: {string: i64}
+    _single_values: {string: string}
+    _multiple_values: {string: [string]}
+    _subcommand: (string, Args)
+    _positional_index: u64
 
     def __init__(self,
                  name: string = None,
@@ -501,63 +503,47 @@ class Parser:
 
                 raise SystemExitError()
 
-    def _parse_options(self,
-                       reader: _Reader,
-                       options: {string: i64},
-                       single_values: {string: string},
-                       multiple_values: {string: [string]}):
-        while reader.available():
-            option_name = reader.get()
+    def _parse_option(self, reader: _Reader):
+        option_name = reader.get()
 
-            if not option_name.starts_with("-"):
-                reader.unget()
-                break
+        for name in self._expand_option(option_name):
+            option = self._find_option(name)
 
-            if option_name == "--":
-                break
+            self._handle_builtin_options(name)
 
-            if option_name == "-":
-                reader.unget()
-                break
+            if option.is_single_flag():
+                if self._options_count[name] > 0:
+                    raise ArgparseError(
+                        f"{_style_option(name)} can only be given once")
 
-            for name in self._expand_option(option_name):
-                option = self._find_option(name)
+                self._options_count[name] = 1
+            elif option.is_multiple_flag():
+                self._options_count[name] += 1
+            else:
+                if not reader.available():
+                    raise ArgparseError(
+                        f"value missing for option {_style_option(name)}")
 
-                self._handle_builtin_options(name)
+                value = reader.get()
 
-                if option.is_single_flag():
-                    if options[name] > 0:
+                if option.choices is not None:
+                    if value not in option.choices:
+                        choices = [_style_option(choice)
+                                   for choice in option.choices]
+
+                        raise ArgparseError(
+                            f"invalid value {_style_error(value)} to option "
+                            f"{_style_option(name)}, choose from "
+                            f"{join_and(choices)}")
+
+                if option.is_single_value():
+                    if self._single_values[name] is not None:
                         raise ArgparseError(
                             f"{_style_option(name)} can only be given once")
 
-                    options[name] = 1
-                elif option.is_multiple_flag():
-                    options[name] += 1
+                    self._single_values[name] = value
                 else:
-                    if not reader.available():
-                        raise ArgparseError(
-                            f"value missing for option {_style_option(name)}")
-
-                    value = reader.get()
-
-                    if option.choices is not None:
-                        if value not in option.choices:
-                            choices = [_style_option(choice)
-                                       for choice in option.choices]
-
-                            raise ArgparseError(
-                                f"invalid value {_style_error(value)} to option "
-                                f"{_style_option(name)}, choose from "
-                                f"{join_and(choices)}")
-
-                    if option.is_single_value():
-                        if single_values[name] is not None:
-                            raise ArgparseError(
-                                f"{_style_option(name)} can only be given once")
-
-                        single_values[name] = value
-                    else:
-                        multiple_values[name].append(value)
+                    self._multiple_values[name].append(value)
 
     def _find_subcommand(self, name: string) -> Parser:
         for subcommand in self._subcommands:
@@ -571,77 +557,95 @@ class Parser:
             f"invalid subcommand {_style_error(name)}, choose from {choices}")
 
     def _parse_subcommand(self, reader: _Reader) -> (string, Args):
-        if not reader.available():
-            choices = join_and([_style_subcommand(subcommand.name)
-                                for subcommand in self._subcommands])
-
-            raise ArgparseError(f"subcommand missing, choose from {choices}")
-
         subcommand = self._find_subcommand(reader.get())
 
         return (subcommand.name, subcommand.parse_inner(reader))
 
-    def _get_positional_value(self,
-                              name: string,
-                              reader: _Reader) -> string:
-        if not reader.available():
-            raise ArgparseError(f"positional {_style_positional(name)} missing")
+    def _parse_positional(self, reader: _Reader) -> bool:
+        if self._positional_index == len(self._positionals):
+            return False
 
-        return reader.get()
+        positional = self._positionals[self._positional_index]
+        self._positional_index += 1
+        name = positional.name
+        value = reader.get()
 
-    def _parse_positionals(self,
-                           reader: _Reader,
-                           single_values: {string: string},
-                           multiple_values: {string: [string]}):
-        for positional in self._positionals:
-            name = positional.name
-            value = self._get_positional_value(name, reader)
+        if positional.choices is not None:
+            if value not in positional.choices:
+                choices = [_style_positional(choice)
+                           for choice in positional.choices]
 
-            if positional.choices is not None:
-                if value not in positional.choices:
-                    choices = [_style_positional(choice)
-                               for choice in positional.choices]
+                raise ArgparseError(
+                    f"invalid value {_style_error(value)} to positional "
+                    f"{_style_positional(name)}, choose from "
+                    f"{join_and(choices)}")
 
-                    raise ArgparseError(
-                        f"invalid value {_style_error(value)} to positional "
-                        f"{_style_positional(name)}, choose from "
-                        f"{join_and(choices)}")
+        if positional.is_single_value():
+            self._single_values[name] = value
+        else:
+            self._multiple_values[name] = [value]
 
-            if positional.is_single_value():
-                single_values[name] = value
-            else:
-                multiple_values[name] = [value]
+            while reader.available():
+                self._multiple_values[name].append(reader.get())
 
-                while reader.available():
-                    multiple_values[name].append(reader.get())
+        return True
 
     def parse_inner(self, reader: _Reader) -> Args:
-        options: {string: i64} = {}
-        single_values: {string: string} = {}
-        multiple_values: {string: [string]} = {}
-        subcommand: (string, Args) = None
+        self._options_count = {}
+        self._single_values = {}
+        self._multiple_values = {}
+        self._subcommand = None
+        self._positional_index = 0
+        end_of_options_found = False
 
         for option in self._options:
             if option.is_flag():
-                options[option.name] = 0
+                self._options_count[option.name] = 0
             elif option.is_single_value():
-                single_values[option.name] = None
+                self._single_values[option.name] = None
             elif option.is_multiple_value():
-                multiple_values[option.name] = []
+                self._multiple_values[option.name] = []
 
-        self._parse_options(reader, options, single_values, multiple_values)
+        while reader.available():
+            argument = reader.get()
+
+            if argument == "--":
+                end_of_options_found = True
+            else:
+                reader.unget()
+
+                if (end_of_options_found
+                    or argument == "-"
+                    or not argument.starts_with("-")):
+                    if self._subcommands != []:
+                        self._subcommand = self._parse_subcommand(reader)
+                        break
+                    elif not self._parse_positional(reader):
+                        break
+                else:
+                    self._parse_option(reader)
 
         for option in self._options:
             if option.is_single_value():
-                if single_values[option.name] is None:
-                    single_values[option.name] = option.default
+                if self._single_values[option.name] is None:
+                    self._single_values[option.name] = option.default
 
         if self._subcommands != []:
-            subcommand = self._parse_subcommand(reader)
-        else:
-            self._parse_positionals(reader, single_values, multiple_values)
+            if self._subcommand is None:
+                choices = join_and([_style_subcommand(subcommand.name)
+                                    for subcommand in self._subcommands])
 
-        return Args(options, single_values, multiple_values, subcommand)
+                raise ArgparseError(f"subcommand missing, choose from {choices}")
+        elif self._positional_index < len(self._positionals):
+            positional = self._positionals[self._positional_index]
+
+            raise ArgparseError(
+                f"positional {_style_positional(positional.name)} missing")
+
+        return Args(self._options_count,
+                    self._single_values,
+                    self._multiple_values,
+                    self._subcommand)
 
 @test
 def test_cat_and_monkey_subcommands():
@@ -1067,6 +1071,31 @@ def test_end_of_options():
     args = parser.parse(["bar", "--", "foo", "--", "-", "-"])
     _, args = args.subcommand()
     assert args.value_of("out") == "-"
+
+    args = parser.parse(["bar", "foo", "a", "--", "--cat"])
+    _, args = args.subcommand()
+    assert args.value_of("in") == "a"
+    assert args.value_of("out") == "--cat"
+    assert not args.is_present("--cat")
+
+    try:
+        parser.parse(["bar", "foo", "a", "--cat"], exit_on_error=False)
+        assert False
+    except ArgparseError as error:
+        assert error.message == f"positional {CYAN}out{RESET} missing"
+
+    args = parser.parse(["bar", "foo", "a", "--cat", "b"])
+    _, args = args.subcommand()
+    assert args.value_of("in") == "a"
+    assert args.value_of("out") == "b"
+    assert args.is_present("--cat")
+
+    try:
+        parser.parse(["bar", "foo", "a", "--", "--cat", "b", "c", "d"],
+                     exit_on_error=False)
+        assert False
+    except ArgparseError as error:
+        assert error.message == "too many arguments, remaining: 'b c d'"
 
 @test
 def test_positional_name_must_not_start_with_dash():
