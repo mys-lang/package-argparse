@@ -609,7 +609,7 @@ class Parser:
         while reader.available():
             argument = reader.get()
 
-            if argument == "--":
+            if argument == "--" and not end_of_options_found:
                 end_of_options_found = True
             else:
                 reader.unget()
@@ -1096,6 +1096,12 @@ def test_end_of_options():
         assert False
     except ArgparseError as error:
         assert error.message == "too many arguments, remaining: 'b c d'"
+
+    args = parser.parse(["bar", "foo", "a", "--", "--"])
+    _, args = args.subcommand()
+    assert args.value_of("in") == "a"
+    assert args.value_of("out") == "--"
+    assert not args.is_present("--cat")
 
 @test
 def test_positional_name_must_not_start_with_dash():
