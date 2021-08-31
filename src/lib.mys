@@ -117,6 +117,15 @@ class _Reader:
     def unget(self):
         self._pos -= 1
 
+    def insert(self, arguments: [string]):
+        argv = self._argv
+        self._argv = arguments
+
+        for arg in slice(argv, i64(self._pos)):
+            self._argv.append(arg)
+
+        self._pos = 0
+
 class Args:
     """Returned by the parser's parse method.
 
@@ -412,8 +421,26 @@ class Parser:
         print(_underline("Options"))
         entries: [(string, i64, string)] = []
         longest_options: i64 = 0
+        longest_options = self.get_options_help([], entries, longest_options)
+
+        for options, options_length, help in entries:
+            options = _pad(options, longest_options - options_length)
+            print(f"  {_style_option(options)}    {help}")
+
+    def _options_names(self) -> [string]:
+        return [option.name for option in self._options]
+
+    def get_options_help(self,
+                         options_to_skip: [string],
+                         entries: [(string, i64, string)],
+                         longest_options: i64) -> i64:
+        if self._options == []:
+            return longest_options
 
         for option in self._options:
+            if option.name in options_to_skip:
+                continue
+
             help = ""
 
             if option.help is not None:
@@ -429,9 +456,13 @@ class Parser:
             longest_options = max(options_length, longest_options)
             entries.append((options, options_length, help))
 
-        for options, options_length, help in entries:
-            options = _pad(options, longest_options - options_length)
-            print(f"  {_style_option(options)}    {help}")
+        if self._parent is not None:
+            longest_options = self._parent.get_options_help(
+                options_to_skip + self._options_names(),
+                entries,
+                longest_options)
+
+        return longest_options
 
     def _print_positionals_help(self):
         if self._positionals == []:
@@ -462,25 +493,7 @@ class Parser:
             if option.name == name or option.short == name:
                 return option
 
-        raise ArgparseError(f"invalid option {_style_error(name)}")
-
-    def _short_to_long_option(self, short: string) -> string:
-        for option in self._options:
-            if option.short == short:
-                return option.name
-
-        raise ArgparseError(f"invalid option {_style_error(short)}")
-
-    def _expand_option(self, option: string) -> [string]:
-        options: [string] = []
-
-        if option.starts_with("--"):
-            options.append(option)
-        else:
-            for short in slice(option, 1):
-                options.append(self._short_to_long_option(f"-{short}"))
-
-        return options
+        return None
 
     def _add_builtin_options(self):
         self.add_option("--help",
@@ -503,47 +516,59 @@ class Parser:
 
                 raise SystemExitError()
 
-    def _parse_option(self, reader: _Reader):
-        option_name = reader.get()
+    def parse_option(self, reader: _Reader, options_to_skip: [string]):
+        name = reader.get()
+        option = self._find_option(name)
 
-        for name in self._expand_option(option_name):
-            option = self._find_option(name)
+        if option is None:
+            if self._parent is None:
+                raise ArgparseError(f"invalid option {_style_error(name)}")
 
-            self._handle_builtin_options(name)
+            reader.unget()
+            self._parent.parse_option(reader,
+                                      options_to_skip + self._options_names())
 
-            if option.is_single_flag():
-                if self._options_count[name] > 0:
+            return
+
+        if option.name in options_to_skip:
+            raise ArgparseError(f"invalid option {_style_error(name)}")
+
+        name = option.name
+        self._handle_builtin_options(name)
+
+        if option.is_single_flag():
+            if self._options_count[name] > 0:
+                raise ArgparseError(
+                    f"{_style_option(name)} can only be given once")
+
+            self._options_count[name] = 1
+        elif option.is_multiple_flag():
+            self._options_count[name] += 1
+        else:
+            if not reader.available():
+                raise ArgparseError(
+                    f"value missing for option {_style_option(name)}")
+
+            value = reader.get()
+
+            if option.choices is not None:
+                if value not in option.choices:
+                    choices = [_style_option(choice)
+                               for choice in option.choices]
+
+                    raise ArgparseError(
+                        f"invalid value {_style_error(value)} to option "
+                        f"{_style_option(name)}, choose from "
+                        f"{join_and(choices)}")
+
+            if option.is_single_value():
+                if self._single_values[name] is not None:
                     raise ArgparseError(
                         f"{_style_option(name)} can only be given once")
 
-                self._options_count[name] = 1
-            elif option.is_multiple_flag():
-                self._options_count[name] += 1
+                self._single_values[name] = value
             else:
-                if not reader.available():
-                    raise ArgparseError(
-                        f"value missing for option {_style_option(name)}")
-
-                value = reader.get()
-
-                if option.choices is not None:
-                    if value not in option.choices:
-                        choices = [_style_option(choice)
-                                   for choice in option.choices]
-
-                        raise ArgparseError(
-                            f"invalid value {_style_error(value)} to option "
-                            f"{_style_option(name)}, choose from "
-                            f"{join_and(choices)}")
-
-                if option.is_single_value():
-                    if self._single_values[name] is not None:
-                        raise ArgparseError(
-                            f"{_style_option(name)} can only be given once")
-
-                    self._single_values[name] = value
-                else:
-                    self._multiple_values[name].append(value)
+                self._multiple_values[name].append(value)
 
     def _find_subcommand(self, name: string) -> Parser:
         for subcommand in self._subcommands:
@@ -623,7 +648,11 @@ class Parser:
                     elif not self._parse_positional(reader):
                         break
                 else:
-                    self._parse_option(reader)
+                    if not argument.starts_with("--") and len(argument) > 2:
+                        reader.get()
+                        reader.insert([f"-{short}" for short in slice(argument, 1)])
+
+                    self.parse_option(reader, [])
 
         for option in self._options:
             if option.is_single_value():
@@ -740,6 +769,12 @@ def test_help():
 
     try:
         parser.parse(["foo", "--help"])
+        assert False
+    except SystemExitError:
+        pass
+
+    try:
+        parser.parse(["foo", "cat", "--help"])
         assert False
     except SystemExitError:
         pass
@@ -948,7 +983,7 @@ def test_option_missing_value():
     parser.add_option("--bbb", short="-b")
 
     try:
-        parser.parse(["a", "-ab"], exit_on_error=False)
+        parser.parse(["a", "-ba"], exit_on_error=False)
         assert False
     except ArgparseError as error:
         assert error.message == f"value missing for option {YELLOW}--aaa{RESET}"
@@ -1122,3 +1157,42 @@ def test_subcommand_name_must_not_start_with_dash():
         assert False
     except ArgparseError as error:
         assert error.message == "subcommands must not start with '-'"
+
+@test
+def test_parent_options_in_subcommand():
+    parser = Parser()
+    parser.add_option("--cat", multiple_occurrences=True)
+    foo = parser.add_subcommand("foo")
+
+    args = parser.parse(["bar", "--cat", "foo"])
+    assert args.is_present("--cat")
+
+    args = parser.parse(["bar", "foo", "--cat"])
+    assert args.is_present("--cat")
+
+    args = parser.parse(["bar", "--cat", "foo", "--cat"])
+    assert args.occurrences_of("--cat") == 2
+
+@test
+def test_skip_parent_option_with_same_name_as_in_subcommand():
+    parser = Parser()
+    parser.add_option("--foo", short="-f")
+    bar = parser.add_subcommand("bar")
+    bar.add_option("--foo")
+
+    try:
+        parser.parse(["bar", "bar", "--help"])
+    except SystemExitError:
+        pass
+
+    args = parser.parse(["bar", "bar", "--foo"])
+    assert not args.is_present("--foo")
+    _, args = args.subcommand()
+    assert args.is_present("--foo")
+
+    # bar subcommand option --foo is prioritized, -f cannot be used.
+    try:
+        parser.parse(["bar", "bar", "-f"], exit_on_error=False)
+        assert False
+    except ArgparseError as error:
+        assert error.message == f"invalid option {RED}{BOLD}-f{RESET}"

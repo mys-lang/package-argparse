@@ -23,6 +23,7 @@ jobs:
       run: |
         mys test
         mys -C examples/basic run -- --help
+        mys -C examples/subcommand run -- --help
 
   release:
     needs: [linux]

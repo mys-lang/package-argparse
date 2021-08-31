@@ -1,0 +1,32 @@
+from argparse import Parser
+
+def main(argv: [string]):
+    parser = Parser(help="A subcommand example.")
+
+    parser.add_option("--verbose",
+                      short="-v",
+                      multiple_occurrences=True,
+                      help="Verbose output.")
+
+    read = parser.add_subcommand("read", help="Read from memory.")
+    read.add_positional("address", help="Address to read from")
+    read.add_positional("size", help="Number of bytes to read")
+
+    write = parser.add_subcommand("write", help="Write to memory.")
+    write.add_option("--erase", help="Erase before write.")
+    write.add_positional("address", help="Address to write to")
+    write.add_positional("data", help="Data to write")
+
+    args = parser.parse(argv)
+    print("Number of --verbose: ", args.occurrences_of("--verbose"))
+
+    subcommand, args = args.subcommand()
+
+    match subcommand:
+        case "read":
+            print("Address:             ", args.value_of("address"))
+            print("Size:                ", args.value_of("size"))
+        case "write":
+            print("Address:             ", args.value_of("address"))
+            print("Data:                ", args.value_of("data"))
+            print("Erase?:              ", args.is_present("--erase"))
