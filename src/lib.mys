@@ -8,6 +8,47 @@ from string import indent
 from string import join_and
 from string import join_or
 
+# #compdef semver
+#
+# _semver() {
+#     local state line
+#
+#     _arguments -S \
+#         '-h[Show this help.]' \
+#         '--help[Show this help.]' \
+#         '--version[Show version information.]' \
+#         ':::_semver_subcommand' \
+#         '*::: :->start'
+#
+#     case $state in
+#         start)
+#             words=($line[1] "${words[@]}")
+#             (( CURRENT += 1 ))
+#
+#             case $line[1] in
+#                 increment)
+#                     _arguments -S \
+#                         '-h[Show this help.]' \
+#                         '--help[Show this help.]' \
+#                         '--version[Show version information.]' \
+#                         ':field:(major minor patch)' \
+#                         ':version:'
+#                     ;;
+#             esac
+#             ;;
+#     esac
+# }
+#
+# _semver_subcommand() {
+#     local subcommands;
+#     subcommands=(
+#         'increment:Increment version.' \
+#     )
+#     _describe 'command' subcommands
+# }
+#
+# _semver "$@"
+
 def _style_option(text: string) -> string:
     return f"{YELLOW}{text}{RESET}"
 
