@@ -63,6 +63,20 @@ Show help:
      <y>--version</>        Show version infomation.
      <y>-v, --verbose</>    Verbose output.
 
+Generate Zsh completions:
+
+.. code-block:: myscon
+
+   ❯ ln -s build/speed/app basic
+   ❯ export PATH=$(pwd):$PATH
+   ❯ basic --shell-completion zsh > ~/.oh-my-zsh/functions/_basic  # Somewhere in $FPATH
+   ❯ compinit
+   ❯ basic -<TAB>
+   --help              -h  -- Show this help.
+   --shell-completion      -- Print the shell command completion script.
+   --verbose           -v  -- Verbose output.
+   --version               -- Show version infomation.
+
 API
 ===
 
