@@ -8,47 +8,6 @@ from string import indent
 from string import join_and
 from string import join_or
 
-# #compdef semver
-#
-# _semver() {
-#     local state line
-#
-#     _arguments -S \
-#         '-h[Show this help.]' \
-#         '--help[Show this help.]' \
-#         '--version[Show version information.]' \
-#         ':::_semver_subcommand' \
-#         '*::: :->start'
-#
-#     case $state in
-#         start)
-#             words=($line[1] "${words[@]}")
-#             (( CURRENT += 1 ))
-#
-#             case $line[1] in
-#                 increment)
-#                     _arguments -S \
-#                         '-h[Show this help.]' \
-#                         '--help[Show this help.]' \
-#                         '--version[Show version information.]' \
-#                         ':field:(major minor patch)' \
-#                         ':version:'
-#                     ;;
-#             esac
-#             ;;
-#     esac
-# }
-#
-# _semver_subcommand() {
-#     local subcommands;
-#     subcommands=(
-#         'increment:Increment version.' \
-#     )
-#     _describe 'command' subcommands
-# }
-#
-# _semver "$@"
-
 def _style_option(text: string) -> string:
     return f"{YELLOW}{text}{RESET}"
 
@@ -72,6 +31,15 @@ def _pad(value: string, count: i64) -> string:
         value += ' '
 
     return value
+
+def _validate_option_value(option: _Option, value: string):
+    if value not in option.choices:
+        choices = [_style_option(choice) for choice in option.choices]
+
+        raise ArgparseError(
+            f"invalid value {_style_error(value)} to option "
+            f"{_style_option(option.name)}, choose from "
+            f"{join_and(choices)}")
 
 class ArgparseError(Error):
     message: string
@@ -545,17 +513,35 @@ class Parser:
             self.add_option("--version",
                             help="Show version infomation.")
 
-    def _handle_builtin_options(self, name: string):
-        if name == "--help":
-            self.print_help()
+        self.add_option("--shell-completion",
+                        takes_value=True,
+                        choices=["zsh"],
+                        help="Print the shell command completion script.")
 
-            raise SystemExitError()
-
-        if self.version is not None:
-            if name == "--version":
-                print(self.version)
+    def _handle_builtin_options(self, option: _Option, reader: _Reader):
+        match option.name:
+            case "--help":
+                self.print_help()
 
                 raise SystemExitError()
+            case "--version":
+                if self.version is not None:
+                    print(self.version)
+
+                    raise SystemExitError()
+            case "--shell-completion":
+                if not reader.available():
+                    raise ArgparseError(
+                        f"value missing for option {_style_option(option.name)}")
+
+                value = reader.get()
+                _validate_option_value(option, value)
+
+                match value:
+                    case "zsh":
+                        print(self.zsh_completion(), end="")
+
+                        raise SystemExitError()
 
     def parse_option(self, reader: _Reader, options_to_skip: [string]):
         name = reader.get()
@@ -574,8 +560,8 @@ class Parser:
         if option.name in options_to_skip:
             raise ArgparseError(f"invalid option {_style_error(name)}")
 
+        self._handle_builtin_options(option, reader)
         name = option.name
-        self._handle_builtin_options(name)
 
         if option.is_single_flag():
             if self._options_count[name] > 0:
@@ -593,14 +579,7 @@ class Parser:
             value = reader.get()
 
             if option.choices is not None:
-                if value not in option.choices:
-                    choices = [_style_option(choice)
-                               for choice in option.choices]
-
-                    raise ArgparseError(
-                        f"invalid value {_style_error(value)} to option "
-                        f"{_style_option(name)}, choose from "
-                        f"{join_and(choices)}")
+                _validate_option_value(option, value)
 
             if option.is_single_value():
                 if self._single_values[name] is not None:
@@ -716,6 +695,77 @@ class Parser:
                     self._single_values,
                     self._multiple_values,
                     self._subcommand)
+
+# #compdef semver
+#
+# _semver() {
+#     local state line
+#
+#     _arguments -S \
+#         '-h[Show this help.]' \
+#         '--help[Show this help.]' \
+#         '--version[Show version information.]' \
+#         ':::_semver_subcommand' \
+#         '*::: :->start'
+#
+#     case $state in
+#         start)
+#             words=($line[1] "${words[@]}")
+#             (( CURRENT += 1 ))
+#
+#             case $line[1] in
+#                 increment)
+#                     _arguments -S \
+#                         '-h[Show this help.]' \
+#                         '--help[Show this help.]' \
+#                         '--version[Show version information.]' \
+#                         ':field:(major minor patch)' \
+#                         ':version:'
+#                     ;;
+#             esac
+#             ;;
+#     esac
+# }
+#
+# _semver_subcommand() {
+#     local subcommands;
+#     subcommands=(
+#         'increment:Increment version.' \
+#     )
+#     _describe 'command' subcommands
+# }
+#
+# _semver "$@"
+
+    def zsh_completion(self) -> string:
+        """Returns the Zsh command completion script.
+
+        """
+
+        arguments: [string] = []
+
+        for option in self._options:
+            if option.short is not None:
+                arguments.append(f"        '{option.short}[{option.help}]'")
+
+            arguments.append(f"        '{option.name}[{option.help}]'")
+
+        for positional in self._positionals:
+            arguments.append(f"        ':{positional.name}:_files'")
+
+        arguments_string = " \\\n".join(arguments)
+
+        return (
+            f"#compdef {self.name}\n"
+            "\n"
+            f"_{self.name}() {{\n"
+            "    local state line\n"
+            "\n"
+            "    _arguments -S \\\n"
+            f"{arguments_string}\n"
+            "}\n"
+            "\n"
+            f"_{self.name} \"$@\"\n")
 
 @test
 def test_cat_and_monkey_subcommands():
@@ -1237,3 +1287,58 @@ def test_skip_parent_option_with_same_name_as_in_subcommand():
         assert False
     except ArgparseError as error:
         assert error.message == f"invalid option {RED}{BOLD}-f{RESET}"
+
+@test
+def test_zsh_completion_empty_parser():
+    assert Parser("foobar").zsh_completion() == (
+        "#compdef foobar\n"
+        "\n"
+        "_foobar() {\n"
+        "    local state line\n"
+        "\n"
+        "    _arguments -S \\\n"
+        "        '-h[Show this help.]' \\\n"
+        "        '--help[Show this help.]' \\\n"
+        "        '--shell-completion[Print the shell command completion script.]'\n"
+        "}\n"
+        "\n"
+        "_foobar \"$@\"\n")
+
+@test
+def test_zsh_completion_version_parser():
+    assert Parser("foobar", version="1.0.0").zsh_completion() == (
+        "#compdef foobar\n"
+        "\n"
+        "_foobar() {\n"
+        "    local state line\n"
+        "\n"
+        "    _arguments -S \\\n"
+        "        '-h[Show this help.]' \\\n"
+        "        '--help[Show this help.]' \\\n"
+        "        '--version[Show version infomation.]' \\\n"
+        "        '--shell-completion[Print the shell command completion script.]'\n"
+        "}\n"
+        "\n"
+        "_foobar \"$@\"\n")
+
+@test
+def test_shell_completion_zsh():
+    parser = Parser("foo")
+
+    try:
+        parser.parse(["foo", "--shell-completion", "zsh"])
+        assert False
+    except SystemExitError:
+        pass
+
+@test
+def test_shell_completion_bad_value():
+    parser = Parser("foo")
+
+    try:
+        parser.parse(["foo", "--shell-completion", "bad"], exit_on_error=False)
+        assert False
+    except ArgparseError as error:
+        assert error.message == (
+            f"invalid value {RED}{BOLD}bad{RESET} to option "
+            f"{YELLOW}--shell-completion{RESET}, choose from {YELLOW}zsh{RESET}")
