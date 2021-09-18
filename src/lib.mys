@@ -696,47 +696,6 @@ class Parser:
                     self._multiple_values,
                     self._subcommand)
 
-# #compdef semver
-#
-# _semver() {
-#     local state line
-#
-#     _arguments -S \
-#         '-h[Show this help.]' \
-#         '--help[Show this help.]' \
-#         '--version[Show version information.]' \
-#         ':::_semver_subcommand' \
-#         '*::: :->start'
-#
-#     case $state in
-#         start)
-#             words=($line[1] "${words[@]}")
-#             (( CURRENT += 1 ))
-#
-#             case $line[1] in
-#                 increment)
-#                     _arguments -S \
-#                         '-h[Show this help.]' \
-#                         '--help[Show this help.]' \
-#                         '--version[Show version information.]' \
-#                         ':field:(major minor patch)' \
-#                         ':version:'
-#                     ;;
-#             esac
-#             ;;
-#     esac
-# }
-#
-# _semver_subcommand() {
-#     local subcommands;
-#     subcommands=(
-#         'increment:Increment version.' \
-#     )
-#     _describe 'command' subcommands
-# }
-#
-# _semver "$@"
-
     def zsh_completion(self) -> string:
         """Returns the Zsh command completion script.
 
@@ -784,7 +743,13 @@ class Parser:
             arguments.append(f"    '{option.name}{help}{value}'")
 
         for positional in self._positionals:
-            arguments.append(f"    ':{positional.name}:_files'")
+            if positional.choices is not None:
+                choices = " ".join(positional.choices)
+                value = f"({choices})"
+            else:
+                value = "_files"
+
+            arguments.append(f"    ':{positional.name}:{value}'")
 
         if self._subcommands != []:
             function_name = f"_{prefix}_subcommand"
@@ -1407,6 +1372,7 @@ def test_zsh_completion_options_and_positionals():
                       short="-s",
                       takes_value=True)
     parser.add_positional("bar")
+    parser.add_positional("ko", choices=["a", "bb"])
 
     assert parser.zsh_completion() == (
         "#compdef foo\n"
@@ -1421,7 +1387,8 @@ def test_zsh_completion_options_and_positionals():
         ":value:(zsh)' \\\n"
         "        '-s:value:_files' \\\n"
         "        '--sound:value:_files' \\\n"
-        "        ':bar:_files'\n"
+        "        ':bar:_files' \\\n"
+        "        ':ko:(a bb)'\n"
         "}\n"
         "\n"
         "_foo \"$@\"\n")
