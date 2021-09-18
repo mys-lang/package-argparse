@@ -745,10 +745,23 @@ class Parser:
         arguments: [string] = []
 
         for option in self._options:
-            if option.short is not None:
-                arguments.append(f"        '{option.short}[{option.help}]'")
+            if option.choices is not None:
+                choices = " ".join(option.choices)
+                value = f":value:({choices})"
+            elif option.takes_value:
+                value = ":value:_files"
+            else:
+                value = ""
 
-            arguments.append(f"        '{option.name}[{option.help}]'")
+            if option.help is not None:
+                help = f"[{option.help}]"
+            else:
+                help = ""
+
+            if option.short is not None:
+                arguments.append(f"        '{option.short}{help}{value}'")
+
+            arguments.append(f"        '{option.name}{help}{value}'")
 
         for positional in self._positionals:
             arguments.append(f"        ':{positional.name}:_files'")
@@ -1299,7 +1312,8 @@ def test_zsh_completion_empty_parser():
         "    _arguments -S \\\n"
         "        '-h[Show this help.]' \\\n"
         "        '--help[Show this help.]' \\\n"
-        "        '--shell-completion[Print the shell command completion script.]'\n"
+        "        '--shell-completion[Print the shell command completion script.]"
+        ":value:(zsh)'\n"
         "}\n"
         "\n"
         "_foobar \"$@\"\n")
@@ -1316,10 +1330,37 @@ def test_zsh_completion_version_parser():
         "        '-h[Show this help.]' \\\n"
         "        '--help[Show this help.]' \\\n"
         "        '--version[Show version infomation.]' \\\n"
-        "        '--shell-completion[Print the shell command completion script.]'\n"
+        "        '--shell-completion[Print the shell command completion script.]"
+        ":value:(zsh)'\n"
         "}\n"
         "\n"
         "_foobar \"$@\"\n")
+
+@test
+def test_zsh_completion_options_and_positionals():
+    parser = Parser("foo")
+    parser.add_option("--sound",
+                      short="-s",
+                      takes_value=True)
+    parser.add_positional("bar")
+
+    assert parser.zsh_completion() == (
+        "#compdef foo\n"
+        "\n"
+        "_foo() {\n"
+        "    local state line\n"
+        "\n"
+        "    _arguments -S \\\n"
+        "        '-h[Show this help.]' \\\n"
+        "        '--help[Show this help.]' \\\n"
+        "        '--shell-completion[Print the shell command completion script.]"
+        ":value:(zsh)' \\\n"
+        "        '-s:value:_files' \\\n"
+        "        '--sound:value:_files' \\\n"
+        "        ':bar:_files'\n"
+        "}\n"
+        "\n"
+        "_foo \"$@\"\n")
 
 @test
 def test_shell_completion_zsh():
