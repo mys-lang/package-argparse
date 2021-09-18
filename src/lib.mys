@@ -742,7 +742,27 @@ class Parser:
 
         """
 
+        body, functions = self.zsh_completion_inner(self.name)
+
+        if functions != "":
+            functions += "\n\n"
+
+        return (
+            f"#compdef {self.name}\n"
+            "\n"
+            f"_{self.name}() {{\n"
+            "    local state line\n"
+            "\n"
+            f"{indent(body)}\n"
+            "}\n"
+            "\n"
+            f"{functions}"
+            f"_{self.name} \"$@\"\n")
+
+    def zsh_completion_inner(self, prefix: string) -> (string, string):
         arguments: [string] = []
+        functions: [string] = []
+        case_string: string = None
 
         for option in self._options:
             if option.choices is not None:
@@ -759,26 +779,70 @@ class Parser:
                 help = ""
 
             if option.short is not None:
-                arguments.append(f"        '{option.short}{help}{value}'")
+                arguments.append(f"    '{option.short}{help}{value}'")
 
-            arguments.append(f"        '{option.name}{help}{value}'")
+            arguments.append(f"    '{option.name}{help}{value}'")
 
         for positional in self._positionals:
-            arguments.append(f"        ':{positional.name}:_files'")
+            arguments.append(f"    ':{positional.name}:_files'")
 
-        arguments_string = " \\\n".join(arguments)
+        if self._subcommands != []:
+            function_name = f"_{prefix}_subcommand"
+            arguments.append(f"    ':::{function_name}'")
+            subcommands: [string] = []
+            cases: [string] = []
 
-        return (
-            f"#compdef {self.name}\n"
-            "\n"
-            f"_{self.name}() {{\n"
-            "    local state line\n"
-            "\n"
-            "    _arguments -S \\\n"
-            f"{arguments_string}\n"
-            "}\n"
-            "\n"
-            f"_{self.name} \"$@\"\n")
+            for subcommand in self._subcommands:
+                if subcommand.help is not None:
+                    help = subcommand.help
+                else:
+                    help = ""
+
+                subcommands.append(f"        '{subcommand.name}:{help}'")
+                case_body, case_functions = subcommand.zsh_completion_inner(
+                    f"{prefix}_{subcommand.name}")
+                case_body = indent(case_body, "                ")
+                cases.append(f"            {subcommand.name})\n"
+                             f"{case_body}\n"
+                             "                ;;")
+
+                if case_functions != "":
+                    functions.append(case_functions)
+
+            arguments.append("    '*::: :->node'")
+
+            cases_string = "\n".join(cases)
+            case_string = (
+                "case $state in\n"
+                "    node)\n"
+                "        words=($line[1] \"${words[@]}\")\n"
+                "        (( CURRENT += 1 ))\n"
+                "\n"
+                "        case $line[1] in\n"
+                f"{cases_string}\n"
+                "        esac\n"
+                "        ;;\n"
+                "esac")
+
+            subcommands_string = " \\\n".join(subcommands)
+            functions.append(f"{function_name}() {{\n"
+                             "    local subcommands;\n"
+                             "    subcommands=(\n"
+                             f"{subcommands_string} \\\n"
+                             "    )\n"
+                             "    _describe 'command' subcommands\n"
+                             "}")
+
+        body = ""
+
+        if arguments != []:
+            body += "_arguments -S \\\n"
+            body += " \\\n".join(arguments)
+
+        if case_string is not None:
+            body += f"\n\n{case_string}"
+
+        return body, "\n\n".join(functions)
 
 @test
 def test_cat_and_monkey_subcommands():
@@ -1361,6 +1425,120 @@ def test_zsh_completion_options_and_positionals():
         "}\n"
         "\n"
         "_foo \"$@\"\n")
+
+@test
+def test_zsh_completion_subcommands():
+    parser = Parser("kalle")
+
+    foo = parser.add_subcommand("foo")
+    foo.add_subcommand("fum")
+
+    bar = parser.add_subcommand("bar")
+    bar.add_subcommand("fie", help="Hi fie!")
+
+    assert parser.zsh_completion() == (
+        "#compdef kalle\n"
+        "\n"
+        "_kalle() {\n"
+        "    local state line\n"
+        "\n"
+        "    _arguments -S \\\n"
+        "        '-h[Show this help.]' \\\n"
+        "        '--help[Show this help.]' \\\n"
+        "        '--shell-completion[Print the shell command completion script.]"
+        ":value:(zsh)' \\\n"
+        "        ':::_kalle_subcommand' \\\n"
+        "        '*::: :->node'\n"
+        "\n"
+        "    case $state in\n"
+        "        node)\n"
+        "            words=($line[1] \"${words[@]}\")\n"
+        "            (( CURRENT += 1 ))\n"
+        "\n"
+        "            case $line[1] in\n"
+        "                foo)\n"
+        "                    _arguments -S \\\n"
+        "                        '-h[Show this help.]' \\\n"
+        "                        '--help[Show this help.]' \\\n"
+        "                        '--shell-completion[Print the shell command completion "
+        "script.]:value:(zsh)' \\\n"
+        "                        ':::_kalle_foo_subcommand' \\\n"
+        "                        '*::: :->node'\n"
+        "\n"
+        "                    case $state in\n"
+        "                        node)\n"
+        "                            words=($line[1] \"${words[@]}\")\n"
+        "                            (( CURRENT += 1 ))\n"
+        "\n"
+        "                            case $line[1] in\n"
+        "                                fum)\n"
+        "                                    _arguments -S \\\n"
+        "                                        '-h[Show this help.]' \\\n"
+        "                                        '--help[Show this help.]' \\\n"
+        "                                        '--shell-completion[Print the shell "
+        "command completion script.]:value:(zsh)'\n"
+        "                                    ;;\n"
+        "                            esac\n"
+        "                            ;;\n"
+        "                    esac\n"
+        "                    ;;\n"
+        "                bar)\n"
+        "                    _arguments -S \\\n"
+        "                        '-h[Show this help.]' \\\n"
+        "                        '--help[Show this help.]' \\\n"
+        "                        '--shell-completion[Print the shell command completion "
+        "script.]:value:(zsh)' \\\n"
+        "                        ':::_kalle_bar_subcommand' \\\n"
+        "                        '*::: :->node'\n"
+        "\n"
+        "                    case $state in\n"
+        "                        node)\n"
+        "                            words=($line[1] \"${words[@]}\")\n"
+        "                            (( CURRENT += 1 ))\n"
+        "\n"
+        "                            case $line[1] in\n"
+        "                                fie)\n"
+        "                                    _arguments -S \\\n"
+        "                                        '-h[Show this help.]' \\\n"
+        "                                        '--help[Show this help.]' \\\n"
+        "                                        '--shell-completion[Print the shell "
+        "command completion script.]:value:(zsh)'\n"
+        "                                    ;;\n"
+        "                            esac\n"
+        "                            ;;\n"
+        "                    esac\n"
+        "                    ;;\n"
+        "            esac\n"
+        "            ;;\n"
+        "    esac\n"
+        "}\n"
+        "\n"
+        "_kalle_foo_subcommand() {\n"
+        "    local subcommands;\n"
+        "    subcommands=(\n"
+        "        'fum:' \\\n"
+        "    )\n"
+        "    _describe 'command' subcommands\n"
+        "}\n"
+        "\n"
+        "_kalle_bar_subcommand() {\n"
+        "    local subcommands;\n"
+        "    subcommands=(\n"
+        "        'fie:Hi fie!' \\\n"
+        "    )\n"
+        "    _describe 'command' subcommands\n"
+        "}\n"
+        "\n"
+        "_kalle_subcommand() {\n"
+        "    local subcommands;\n"
+        "    subcommands=(\n"
+        "        'foo:' \\\n"
+        "        'bar:' \\\n"
+        "    )\n"
+        "    _describe 'command' subcommands\n"
+        "}\n"
+        "\n"
+        "_kalle \"$@\"\n")
 
 @test
 def test_shell_completion_zsh():
