@@ -36,6 +36,10 @@ def _zsh_value_type_string(value_type: ValueType) -> string:
     match value_type:
         case ValueType.Path:
             return "_files"
+        case ValueType.FilePath:
+            return "_files"
+        case ValueType.DirPath:
+            return "_files -/"
         case ValueType.Hostname:
             return "_hosts"
         case _:
@@ -213,6 +217,8 @@ class ValueType:
     """
 
     Path
+    FilePath
+    DirPath
     Hostname
     Other
 
@@ -1411,6 +1417,12 @@ def test_zsh_completion_options_and_positionals():
     parser.add_option("--sound2",
                       takes_value=True,
                       value_type=ValueType.Path)
+    parser.add_option("--sound3",
+                      takes_value=True,
+                      value_type=ValueType.FilePath)
+    parser.add_option("--sound4",
+                      takes_value=True,
+                      value_type=ValueType.DirPath)
     parser.add_option("--address",
                       takes_value=True,
                       value_type=ValueType.Hostname)
@@ -1432,6 +1444,8 @@ def test_zsh_completion_options_and_positionals():
         "        '-s[Sound.]:value:( )' \\\n"
         "        '--sound[Sound.]:value:( )' \\\n"
         "        '--sound2:value:_files' \\\n"
+        "        '--sound3:value:_files' \\\n"
+        "        '--sound4:value:_files -/' \\\n"
         "        '--address:value:_hosts' \\\n"
         "        ':bar:( )' \\\n"
         "        ':bar2:_files' \\\n"
