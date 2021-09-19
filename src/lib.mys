@@ -32,6 +32,15 @@ def _pad(value: string, count: i64) -> string:
 
     return value
 
+def _zsh_value_type_string(value_type: ValueType) -> string:
+    match value_type:
+        case ValueType.Path:
+            return "_files"
+        case ValueType.Hostname:
+            return "_hosts"
+        case _:
+            return "( )"
+
 class ArgparseError(Error):
     message: string
 
@@ -39,6 +48,7 @@ class _Option:
     name: string
     short: string
     takes_value: bool
+    value_type: ValueType
     default: string
     multiple_occurrences: bool
     choices: [string]
@@ -48,6 +58,7 @@ class _Option:
                  name: string,
                  short: string,
                  takes_value: bool,
+                 value_type: ValueType,
                  default: string,
                  multiple_occurrences: bool,
                  choices: [string],
@@ -65,6 +76,7 @@ class _Option:
         self.short = short
         self.default = default
         self.takes_value = takes_value
+        self.value_type = value_type
 
         if default is not None:
             self.takes_value = True
@@ -90,6 +102,7 @@ class _Option:
 
 class _Positional:
     name: string
+    value_type: ValueType
     multiple_occurrences: bool
     choices: [string]
     help: string
@@ -193,6 +206,16 @@ class Args:
 
         return self._subcommand
 
+@enum
+class ValueType:
+    """Value type for completion scripts.
+
+    """
+
+    Path
+    Hostname
+    Other
+
 class Parser:
     """An argument parser.
 
@@ -229,6 +252,7 @@ class Parser:
                    name: string,
                    short: string = None,
                    takes_value: bool = False,
+                   value_type: ValueType = ValueType.Other,
                    default: string = None,
                    multiple_occurrences: bool = False,
                    choices: [string] = None,
@@ -254,6 +278,7 @@ class Parser:
         self._options.append(_Option(name,
                                      short,
                                      takes_value,
+                                     value_type,
                                      default,
                                      multiple_occurrences,
                                      choices,
@@ -261,6 +286,7 @@ class Parser:
 
     def add_positional(self,
                        name: string,
+                       value_type: ValueType = ValueType.Other,
                        multiple_occurrences: bool = False,
                        choices: [string] = None,
                        help: string = None):
@@ -280,6 +306,7 @@ class Parser:
                     "only the last posistional can occur multiple times")
 
         self._positionals.append(_Positional(name,
+                                             value_type,
                                              multiple_occurrences,
                                              choices,
                                              help))
@@ -713,17 +740,14 @@ class Parser:
             f"{functions}"
             f"_{self.name} \"$@\"\n")
 
-    def zsh_completion_inner(self, prefix: string) -> (string, string):
-        arguments: [string] = []
-        functions: [string] = []
-        case_string: string = None
-
+    def _zsh_completion_options(self, arguments: [string]):
         for option in self._options:
             if option.choices is not None:
                 choices = " ".join(option.choices)
                 value = f":value:({choices})"
             elif option.takes_value:
-                value = ":value:_files"
+                value = _zsh_value_type_string(option.value_type)
+                value = f":value:{value}"
             else:
                 value = ""
 
@@ -737,14 +761,21 @@ class Parser:
 
             arguments.append(f"    '{option.name}{help}{value}'")
 
+    def _zsh_completion_positionals(self, arguments: [string]):
         for positional in self._positionals:
             if positional.choices is not None:
                 choices = " ".join(positional.choices)
                 value = f"({choices})"
             else:
-                value = "_files"
+                value = _zsh_value_type_string(positional.value_type)
 
             arguments.append(f"    ':{positional.name}:{value}'")
+
+    def _zsh_completion_subcommands(self,
+                                    prefix: string,
+                                    arguments: [string]) -> (string, [string]):
+        case_string: string = None
+        functions: [string] = []
 
         if self._subcommands != []:
             function_name = f"_{prefix}_subcommand"
@@ -761,10 +792,11 @@ class Parser:
                 subcommands.append(f"        '{subcommand.name}:{help}'")
                 case_body, case_functions = subcommand.zsh_completion_inner(
                     f"{prefix}_{subcommand.name}")
-                case_body = indent(case_body, "                ")
-                cases.append(f"            {subcommand.name})\n"
-                             f"{case_body}\n"
-                             "                ;;")
+                case_body = indent(case_body, "    ")
+                cases.append(indent(f"{subcommand.name})\n"
+                                    f"{case_body}\n"
+                                    "    ;;",
+                                    "            "))
 
                 if case_functions != "":
                     functions.append(case_functions)
@@ -792,6 +824,15 @@ class Parser:
                              "    )\n"
                              "    _describe 'command' subcommands\n"
                              "}")
+
+        return case_string, functions
+
+    def zsh_completion_inner(self, prefix: string) -> (string, string):
+        arguments: [string] = []
+
+        self._zsh_completion_options(arguments)
+        self._zsh_completion_positionals(arguments)
+        case_string, functions = self._zsh_completion_subcommands(prefix, arguments)
 
         body = ""
 
@@ -1365,8 +1406,16 @@ def test_zsh_completion_options_and_positionals():
     parser = Parser("foo")
     parser.add_option("--sound",
                       short="-s",
-                      takes_value=True)
+                      takes_value=True,
+                      help="Sound.")
+    parser.add_option("--sound2",
+                      takes_value=True,
+                      value_type=ValueType.Path)
+    parser.add_option("--address",
+                      takes_value=True,
+                      value_type=ValueType.Hostname)
     parser.add_positional("bar")
+    parser.add_positional("bar2", value_type=ValueType.Path)
     parser.add_positional("ko", choices=["a", "bb"])
 
     assert parser.zsh_completion() == (
@@ -1380,9 +1429,12 @@ def test_zsh_completion_options_and_positionals():
         "        '--help[Show this help.]' \\\n"
         "        '--shell-completion[Print the shell command completion script.]"
         ":value:(zsh)' \\\n"
-        "        '-s:value:_files' \\\n"
-        "        '--sound:value:_files' \\\n"
-        "        ':bar:_files' \\\n"
+        "        '-s[Sound.]:value:( )' \\\n"
+        "        '--sound[Sound.]:value:( )' \\\n"
+        "        '--sound2:value:_files' \\\n"
+        "        '--address:value:_hosts' \\\n"
+        "        ':bar:( )' \\\n"
+        "        ':bar2:_files' \\\n"
         "        ':ko:(a bb)'\n"
         "}\n"
         "\n"
