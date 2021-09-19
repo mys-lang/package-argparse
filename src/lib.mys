@@ -32,15 +32,6 @@ def _pad(value: string, count: i64) -> string:
 
     return value
 
-def _validate_option_value(option: _Option, value: string):
-    if value not in option.choices:
-        choices = [_style_option(choice) for choice in option.choices]
-
-        raise ArgparseError(
-            f"invalid value {_style_error(value)} to option "
-            f"{_style_option(option.name)}, choose from "
-            f"{join_and(choices)}")
-
 class ArgparseError(Error):
     message: string
 
@@ -530,14 +521,7 @@ class Parser:
 
                     raise SystemExitError()
             case "--shell-completion":
-                if not reader.available():
-                    raise ArgparseError(
-                        f"value missing for option {_style_option(option.name)}")
-
-                value = reader.get()
-                _validate_option_value(option, value)
-
-                match value:
+                match self._read_option_value(option, reader):
                     case "zsh":
                         print(self.zsh_completion(), end="")
 
@@ -572,14 +556,7 @@ class Parser:
         elif option.is_multiple_flag():
             self._options_count[name] += 1
         else:
-            if not reader.available():
-                raise ArgparseError(
-                    f"value missing for option {_style_option(name)}")
-
-            value = reader.get()
-
-            if option.choices is not None:
-                _validate_option_value(option, value)
+            value = self._read_option_value(option, reader)
 
             if option.is_single_value():
                 if self._single_values[name] is not None:
@@ -589,6 +566,24 @@ class Parser:
                 self._single_values[name] = value
             else:
                 self._multiple_values[name].append(value)
+
+    def _read_option_value(self, option: _Option, reader: _Reader) -> string:
+        if not reader.available():
+            raise ArgparseError(
+                f"value missing for option {_style_option(option.name)}")
+
+        value = reader.get()
+
+        if option.choices is not None:
+            if value not in option.choices:
+                choices = [_style_option(choice) for choice in option.choices]
+
+                raise ArgparseError(
+                    f"invalid value {_style_error(value)} to option "
+                    f"{_style_option(option.name)}, choose from "
+                    f"{join_and(choices)}")
+
+        return value
 
     def _find_subcommand(self, name: string) -> Parser:
         for subcommand in self._subcommands:
