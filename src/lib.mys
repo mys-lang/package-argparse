@@ -798,18 +798,16 @@ class Parser:
                 subcommands.append(f"        '{subcommand.name}:{help}'")
                 case_body, case_functions = subcommand.zsh_completion_inner(
                     f"{prefix}_{subcommand.name}")
-                case_body = indent(case_body, "    ")
-                cases.append(indent(f"{subcommand.name})\n"
-                                    f"{case_body}\n"
-                                    "    ;;",
-                                    "            "))
+                cases.append(f"{subcommand.name})\n"
+                             f"{indent(case_body)}\n"
+                             "    ;;")
 
                 if case_functions != "":
                     functions.append(case_functions)
 
             arguments.append("    '*::: :->node'")
 
-            cases_string = "\n".join(cases)
+            cases_string = indent("\n".join(cases), "            ")
             case_string = (
                 "case $state in\n"
                 "    node)\n"
