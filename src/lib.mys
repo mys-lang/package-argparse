@@ -795,7 +795,7 @@ class Parser:
                 else:
                     help = ""
 
-                subcommands.append(f"        '{subcommand.name}:{help}'")
+                subcommands.append(f"'{subcommand.name}:{help}'")
                 case_body, case_functions = subcommand.zsh_completion_inner(
                     f"{prefix}_{subcommand.name}")
                 cases.append(f"{subcommand.name})\n"
@@ -820,7 +820,7 @@ class Parser:
                 "        ;;\n"
                 "esac")
 
-            subcommands_string = " \\\n".join(subcommands)
+            subcommands_string = indent(" \\\n".join(subcommands), "        ")
             functions.append(f"{function_name}() {{\n"
                              "    local subcommands;\n"
                              "    subcommands=(\n"
