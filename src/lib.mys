@@ -763,9 +763,9 @@ class Parser:
                 help = ""
 
             if option.short is not None:
-                arguments.append(f"    '{option.short}{help}{value}'")
+                arguments.append(f"'{option.short}{help}{value}'")
 
-            arguments.append(f"    '{option.name}{help}{value}'")
+            arguments.append(f"'{option.name}{help}{value}'")
 
     def _zsh_completion_positionals(self, arguments: [string]):
         for positional in self._positionals:
@@ -775,7 +775,7 @@ class Parser:
             else:
                 value = _zsh_value_type_string(positional.value_type)
 
-            arguments.append(f"    ':{positional.name}:{value}'")
+            arguments.append(f"':{positional.name}:{value}'")
 
     def _zsh_completion_subcommands(self,
                                     prefix: string,
@@ -785,7 +785,7 @@ class Parser:
 
         if self._subcommands != []:
             function_name = f"_{prefix}_subcommand"
-            arguments.append(f"    ':::{function_name}'")
+            arguments.append(f"':::{function_name}'")
             subcommands: [string] = []
             cases: [string] = []
 
@@ -805,7 +805,7 @@ class Parser:
                 if case_functions != "":
                     functions.append(case_functions)
 
-            arguments.append("    '*::: :->node'")
+            arguments.append("'*::: :->node'")
 
             cases_string = indent("\n".join(cases), "            ")
             case_string = (
@@ -842,7 +842,7 @@ class Parser:
 
         if arguments != []:
             body += "_arguments -S \\\n"
-            body += " \\\n".join(arguments)
+            body += indent(" \\\n".join(arguments))
 
         if case_string is not None:
             body += f"\n\n{case_string}"
