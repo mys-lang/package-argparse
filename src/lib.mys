@@ -453,27 +453,9 @@ class Parser:
         print()
         print(_underline("Options"))
         entries: [(string, i64, string)] = []
-        longest_options: i64 = 0
-        longest_options = self.get_options_help([], entries, longest_options)
+        longest_options = 0
 
-        for options, options_length, help in entries:
-            options = _pad(options, longest_options - options_length)
-            print(f"  {_style_option(options)}    {help}")
-
-    def _options_names(self) -> [string]:
-        return [option.name for option in self._options]
-
-    def get_options_help(self,
-                         options_to_skip: [string],
-                         entries: [(string, i64, string)],
-                         longest_options: i64) -> i64:
-        if self._options == []:
-            return longest_options
-
-        for option in self._options:
-            if option.name in options_to_skip:
-                continue
-
+        for option in self.collect_options():
             help = ""
 
             if option.help is not None:
@@ -489,13 +471,24 @@ class Parser:
             longest_options = max(options_length, longest_options)
             entries.append((options, options_length, help))
 
-        if self._parent is not None:
-            longest_options = self._parent.get_options_help(
-                options_to_skip + self._options_names(),
-                entries,
-                longest_options)
+        for options, options_length, help in entries:
+            options = _pad(options, longest_options - options_length)
+            print(f"  {_style_option(options)}    {help}")
 
-        return longest_options
+    def _options_names(self) -> [string]:
+        return [option.name for option in self._options]
+
+    def collect_options(self) -> [_Option]:
+        options = self._options
+        option_names = self._options_names()
+
+        if self._parent is not None:
+            for option in self._parent.collect_options():
+                if option.name not in option_names:
+                    options.append(option)
+                    option_names.append(option.name)
+
+        return options
 
     def _print_positionals_help(self):
         if self._positionals == []:
@@ -535,12 +528,13 @@ class Parser:
 
         if self.version is not None:
             self.add_option("--version",
-                            help="Show version infomation.")
+                            help="Show version information.")
 
-        self.add_option("--shell-completion",
-                        takes_value=True,
-                        choices=["zsh"],
-                        help="Print the shell command completion script.")
+        if self._parent is None:
+            self.add_option("--shell-completion",
+                            takes_value=True,
+                            choices=["zsh"],
+                            help="Print the shell command completion script.")
 
     def _handle_builtin_options(self, option: _Option, reader: _Reader):
         match option.name:
@@ -747,7 +741,7 @@ class Parser:
             f"_{self.name} \"$@\"\n")
 
     def _zsh_completion_options(self, arguments: [string]):
-        for option in self._options:
+        for option in self.collect_options():
             if option.choices is not None:
                 choices = " ".join(option.choices)
                 value = f":value:({choices})"
@@ -1398,7 +1392,7 @@ def test_zsh_completion_version_parser():
         "    _arguments -S \\\n"
         "        '-h[Show this help.]' \\\n"
         "        '--help[Show this help.]' \\\n"
-        "        '--version[Show version infomation.]' \\\n"
+        "        '--version[Show version information.]' \\\n"
         "        '--shell-completion[Print the shell command completion script.]"
         ":value:(zsh)'\n"
         "}\n"
@@ -1454,7 +1448,7 @@ def test_zsh_completion_options_and_positionals():
 
 @test
 def test_zsh_completion_subcommands():
-    parser = Parser("kalle")
+    parser = Parser("kalle", version="1.2.3")
 
     foo = parser.add_subcommand("foo")
     foo.add_subcommand("fum")
@@ -1471,6 +1465,7 @@ def test_zsh_completion_subcommands():
         "    _arguments -S \\\n"
         "        '-h[Show this help.]' \\\n"
         "        '--help[Show this help.]' \\\n"
+        "        '--version[Show version information.]' \\\n"
         "        '--shell-completion[Print the shell command completion script.]"
         ":value:(zsh)' \\\n"
         "        ':::_kalle_subcommand' \\\n"
@@ -1486,6 +1481,7 @@ def test_zsh_completion_subcommands():
         "                    _arguments -S \\\n"
         "                        '-h[Show this help.]' \\\n"
         "                        '--help[Show this help.]' \\\n"
+        "                        '--version[Show version information.]' \\\n"
         "                        '--shell-completion[Print the shell command completion "
         "script.]:value:(zsh)' \\\n"
         "                        ':::_kalle_foo_subcommand' \\\n"
@@ -1501,6 +1497,8 @@ def test_zsh_completion_subcommands():
         "                                    _arguments -S \\\n"
         "                                        '-h[Show this help.]' \\\n"
         "                                        '--help[Show this help.]' \\\n"
+        "                                        '--version[Show version information.]' "
+        "\\\n"
         "                                        '--shell-completion[Print the shell "
         "command completion script.]:value:(zsh)'\n"
         "                                    ;;\n"
@@ -1512,6 +1510,7 @@ def test_zsh_completion_subcommands():
         "                    _arguments -S \\\n"
         "                        '-h[Show this help.]' \\\n"
         "                        '--help[Show this help.]' \\\n"
+        "                        '--version[Show version information.]' \\\n"
         "                        '--shell-completion[Print the shell command completion "
         "script.]:value:(zsh)' \\\n"
         "                        ':::_kalle_bar_subcommand' \\\n"
@@ -1527,6 +1526,8 @@ def test_zsh_completion_subcommands():
         "                                    _arguments -S \\\n"
         "                                        '-h[Show this help.]' \\\n"
         "                                        '--help[Show this help.]' \\\n"
+        "                                        '--version[Show version information.]' "
+        "\\\n"
         "                                        '--shell-completion[Print the shell "
         "command completion script.]:value:(zsh)'\n"
         "                                    ;;\n"
