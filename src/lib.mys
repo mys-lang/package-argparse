@@ -43,7 +43,7 @@ def _zsh_value_type_string(value_type: ValueType) -> string:
         case ValueType.Hostname:
             return "_hosts"
         case _:
-            return "( )"
+            return ""
 
 class ArgparseError(Error):
     message: string
@@ -1441,13 +1441,13 @@ def test_zsh_completion_options_and_positionals():
         "        '--help[Show this help.]' \\\n"
         "        '--shell-completion[Print the shell command completion script.]"
         ":value:(zsh)' \\\n"
-        "        '-s[Sound.]:value:( )' \\\n"
-        "        '--sound[Sound.]:value:( )' \\\n"
+        "        '-s[Sound.]:value:' \\\n"
+        "        '--sound[Sound.]:value:' \\\n"
         "        '--sound2:value:_files' \\\n"
         "        '--sound3:value:_files' \\\n"
         "        '--sound4:value:_files -/' \\\n"
         "        '--address:value:_hosts' \\\n"
-        "        ':bar:( )' \\\n"
+        "        ':bar:' \\\n"
         "        ':bar2:_files' \\\n"
         "        ':ko:(a bb)'\n"
         "}\n"
