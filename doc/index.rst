@@ -59,9 +59,10 @@ Show help:
      <c>file</>    A file.
 
    <u>Options</>
-     <y>-h, --help</>       Show this help.
-     <y>--version</>        Show version infomation.
-     <y>-v, --verbose</>    Verbose output.
+     <y>-h, --help</>            Show this help.
+     <y>--version</>             Show version information.
+     <y>--shell-completion</>    Print the shell command completion script.
+     <y>-v, --verbose</>         Verbose output.
 
 Generate Zsh completions:
 
