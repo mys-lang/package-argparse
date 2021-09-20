@@ -429,7 +429,7 @@ class Parser:
         print()
         print(_underline("Subcommands"))
         entries: [(string, i64, string)] = []
-        longest_name: i64 = 0
+        longest_name = 0
 
         for subcommand in self._subcommands:
             help = ""
@@ -497,7 +497,7 @@ class Parser:
         print()
         print(_underline("Positionals"))
         entries: [(string, i64, string)] = []
-        longest_name: i64 = 0
+        longest_name = 0
 
         for positional in self._positionals:
             help = ""
