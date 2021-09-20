@@ -356,7 +356,7 @@ class Parser:
         reader = _Reader(argv, pos=1)
 
         try:
-            args = self.parse_inner(reader)
+            args = self._parse_inner(reader)
 
             if reader.available():
                 remaining: [string] = []
@@ -381,8 +381,8 @@ class Parser:
             else:
                 raise
 
-    def print_help(self):
-        prefix = self.format_synopsis_prefix()
+    def _print_help(self):
+        prefix = self._format_synopsis_prefix()
         suffixes: [string] = []
 
         if self._options != []:
@@ -414,9 +414,9 @@ class Parser:
         self._print_positionals_help()
         self._print_options_help()
 
-    def format_synopsis_prefix(self) -> string:
+    def _format_synopsis_prefix(self) -> string:
         if self._parent is not None:
-            prefix = self._parent.format_synopsis_prefix()
+            prefix = self._parent._format_synopsis_prefix()
 
             return f"{prefix}{self._parent.name} "
         else:
@@ -455,7 +455,7 @@ class Parser:
         entries: [(string, i64, string)] = []
         longest_options = 0
 
-        for option in self.collect_options():
+        for option in self._collect_options():
             help = ""
 
             if option.help is not None:
@@ -478,12 +478,12 @@ class Parser:
     def _options_names(self) -> [string]:
         return [option.name for option in self._options]
 
-    def collect_options(self) -> [_Option]:
+    def _collect_options(self) -> [_Option]:
         options = self._options
         option_names = self._options_names()
 
         if self._parent is not None:
-            for option in self._parent.collect_options():
+            for option in self._parent._collect_options():
                 if option.name not in option_names:
                     options.append(option)
                     option_names.append(option.name)
@@ -539,7 +539,7 @@ class Parser:
     def _handle_builtin_options(self, option: _Option, reader: _Reader):
         match option.name:
             case "--help":
-                self.print_help()
+                self._print_help()
 
                 raise SystemExitError()
             case "--version":
@@ -554,7 +554,7 @@ class Parser:
 
                         raise SystemExitError()
 
-    def parse_option(self, reader: _Reader, options_to_skip: [string]):
+    def _parse_option(self, reader: _Reader, options_to_skip: [string]):
         name = reader.get()
         option = self._find_option(name)
 
@@ -563,8 +563,8 @@ class Parser:
                 raise ArgparseError(f"invalid option {_style_error(name)}")
 
             reader.unget()
-            self._parent.parse_option(reader,
-                                      options_to_skip + self._options_names())
+            self._parent._parse_option(reader,
+                                       options_to_skip + self._options_names())
 
             return
 
@@ -626,7 +626,7 @@ class Parser:
     def _parse_subcommand(self, reader: _Reader) -> (string, Args):
         subcommand = self._find_subcommand(reader.get())
 
-        return (subcommand.name, subcommand.parse_inner(reader))
+        return (subcommand.name, subcommand._parse_inner(reader))
 
     def _parse_positional(self, reader: _Reader) -> bool:
         if self._positional_index == len(self._positionals):
@@ -657,7 +657,7 @@ class Parser:
 
         return True
 
-    def parse_inner(self, reader: _Reader) -> Args:
+    def _parse_inner(self, reader: _Reader) -> Args:
         self._options_count = {}
         self._single_values = {}
         self._multiple_values = {}
@@ -694,7 +694,7 @@ class Parser:
                         reader.get()
                         reader.insert([f"-{short}" for short in slice(argument, 1)])
 
-                    self.parse_option(reader, [])
+                    self._parse_option(reader, [])
 
         for option in self._options:
             if option.is_single_value():
@@ -723,7 +723,7 @@ class Parser:
 
         """
 
-        body, functions = self.zsh_completion_inner(self.name)
+        body, functions = self._zsh_completion_inner(self.name)
 
         if functions != "":
             functions += "\n\n"
@@ -741,7 +741,7 @@ class Parser:
             f"_{self.name} \"$@\"\n")
 
     def _zsh_completion_options(self, arguments: [string]):
-        for option in self.collect_options():
+        for option in self._collect_options():
             if option.choices is not None:
                 choices = " ".join(option.choices)
                 value = f":value:({choices})"
@@ -790,7 +790,7 @@ class Parser:
                     help = ""
 
                 subcommands.append(f"'{subcommand.name}:{help}'")
-                case_body, case_functions = subcommand.zsh_completion_inner(
+                case_body, case_functions = subcommand._zsh_completion_inner(
                     f"{prefix}_{subcommand.name}")
                 cases.append(f"{subcommand.name})\n"
                              f"{indent(case_body)}\n"
@@ -825,7 +825,7 @@ class Parser:
 
         return case_string, functions
 
-    def zsh_completion_inner(self, prefix: string) -> (string, string):
+    def _zsh_completion_inner(self, prefix: string) -> (string, string):
         arguments: [string] = []
 
         self._zsh_completion_options(arguments)
