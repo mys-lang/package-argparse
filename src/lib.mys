@@ -32,6 +32,9 @@ def _pad(value: string, count: i64) -> string:
 
     return value
 
+def _style_option_choices(choices: [string]) -> [string]:
+    return [_style_option(choice) for choice in choices]
+
 def _zsh_value_type_string(value_type: ValueType) -> string:
     match value_type:
         case ValueType.Path:
@@ -74,7 +77,8 @@ class _Option:
         if choices is not None and default is not None:
             if default not in choices:
                 raise ArgparseError(
-                    f"default value {default} must be {join_or(choices)}")
+                    f"default value {_style_error(default)} must be "
+                    f"{join_or(_style_option_choices(choices))}")
 
         self.name = name
         self.short = short
@@ -603,12 +607,10 @@ class Parser:
 
         if option.choices is not None:
             if value not in option.choices:
-                choices = [_style_option(choice) for choice in option.choices]
-
                 raise ArgparseError(
                     f"invalid value {_style_error(value)} to option "
                     f"{_style_option(option.name)}, choose from "
-                    f"{join_and(choices)}")
+                    f"{join_and(_style_option_choices(option.choices))}")
 
         return value
 
@@ -1144,6 +1146,34 @@ def test_multiple_occurrences_option_that_takes_value_missing_value():
         assert error.message == f"value missing for option {YELLOW}--cat{RESET}"
 
 @test
+def test_multiple_occurrences_option_default_value():
+    parser = Parser("bar")
+
+    try:
+        parser.add_option("--cat",
+                          takes_value=True,
+                          default="yes",
+                          multiple_occurrences=True)
+        assert False
+    except ArgparseError as error:
+        assert error.message == (
+            "multiple occurrences options cannot have a default value")
+
+@test
+def test_option_default_value_not_in_choices():
+    parser = Parser("bar")
+
+    try:
+        parser.add_option("--cat",
+                          takes_value=True,
+                          default="yes",
+                          choices=["no"])
+        assert False
+    except ArgparseError as error:
+        assert error.message == (
+            f"default value {RED}{BOLD}yes{RESET} must be {YELLOW}no{RESET}")
+
+@test
 def test_option_missing_value():
     parser = Parser()
     parser.add_option("--aaa", short="-a", takes_value=True)
@@ -1176,6 +1206,17 @@ def test_missing_positional():
         assert False
     except ArgparseError as error:
         assert error.message == f"positional {CYAN}cat{RESET} missing"
+
+@test
+def test_only_last_positional_can_occur_multiple_times():
+    parser = Parser("bar")
+    parser.add_positional("cat", multiple_occurrences=True)
+
+    try:
+        parser.add_positional("dog")
+        assert False
+    except ArgparseError as error:
+        assert error.message == "only the last posistional can occur multiple times"
 
 @test
 def test_no_name():
