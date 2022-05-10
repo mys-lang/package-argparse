@@ -8,34 +8,34 @@ from string import indent
 from string import join_and
 from string import join_or
 
-def _style_option(text: string) -> string:
+func _style_option(text: string) -> string:
     return f"{YELLOW}{text}{RESET}"
 
-def _style_positional(text: string) -> string:
+func _style_positional(text: string) -> string:
     return f"{CYAN}{text}{RESET}"
 
-def _style_subcommand(text: string) -> string:
+func _style_subcommand(text: string) -> string:
     return f"{CYAN}{text}{RESET}"
 
-def _style_error(text: string) -> string:
+func _style_error(text: string) -> string:
     return f"{RED}{BOLD}{text}{RESET}"
 
-def _bold(text: string) -> string:
+func _bold(text: string) -> string:
     return f"{BOLD}{text}{RESET}"
 
-def _underline(text: string) -> string:
+func _underline(text: string) -> string:
     return f"{UNDERLINE}{text}{RESET}"
 
-def _pad(value: string, count: i64) -> string:
+func _pad(value: string, count: i64) -> string:
     for _ in range(count):
         value += ' '
 
     return value
 
-def _style_option_choices(choices: [string]) -> [string]:
+func _style_option_choices(choices: [string]) -> [string]:
     return [_style_option(choice) for choice in choices]
 
-def _zsh_value_type_string(value_type: ValueType) -> string:
+func _zsh_value_type_string(value_type: ValueType) -> string:
     match value_type:
         case ValueType.Path:
             return "_files"
@@ -61,7 +61,7 @@ class _Option:
     choices: [string]
     help: string
 
-    def __init__(self,
+    func __init__(self,
                  name: string,
                  short: string,
                  takes_value: bool,
@@ -93,19 +93,19 @@ class _Option:
         self.choices = choices
         self.help = help
 
-    def is_flag(self) -> bool:
+    func is_flag(self) -> bool:
         return self.is_single_flag() or self.is_multiple_flag()
 
-    def is_single_flag(self) -> bool:
+    func is_single_flag(self) -> bool:
         return not self.takes_value and not self.multiple_occurrences
 
-    def is_multiple_flag(self) -> bool:
+    func is_multiple_flag(self) -> bool:
         return not self.takes_value and self.multiple_occurrences
 
-    def is_single_value(self) -> bool:
+    func is_single_value(self) -> bool:
         return self.takes_value and not self.multiple_occurrences
 
-    def is_multiple_value(self) -> bool:
+    func is_multiple_value(self) -> bool:
         return self.takes_value and self.multiple_occurrences
 
 class _Positional:
@@ -115,30 +115,30 @@ class _Positional:
     choices: [string]
     help: string
 
-    def is_single_value(self) -> bool:
+    func is_single_value(self) -> bool:
         return not self.multiple_occurrences
 
 class _Reader:
     _argv: [string]
     _pos: u64
 
-    def __init__(self, argv: [string], pos: u64):
+    func __init__(self, argv: [string], pos: u64):
         self._argv = argv
         self._pos = pos
 
-    def available(self) -> bool:
+    func available(self) -> bool:
         return self._pos < len(self._argv)
 
-    def get(self) -> string:
+    func get(self) -> string:
         arg = self._argv[self._pos]
         self._pos += 1
 
         return arg
 
-    def unget(self):
+    func unget(self):
         self._pos -= 1
 
-    def insert(self, arguments: [string]):
+    func insert(self, arguments: [string]):
         argv = self._argv
         self._argv = arguments
 
@@ -158,7 +158,7 @@ class Args:
     _subcommand: (string, Args)
     remaining: [string]
 
-    def __init__(self,
+    func __init__(self,
                  options: {string: i64},
                  single_values: {string: string},
                  multiple_values: {string: [string]},
@@ -169,7 +169,7 @@ class Args:
         self._subcommand = subcommand
         self.remaining = []
 
-    def is_present(self, arg: string) -> bool:
+    func is_present(self, arg: string) -> bool:
         """Returns true if given presence (boolean) option was given, false
         otherwise.
 
@@ -177,7 +177,7 @@ class Args:
 
         return self.occurrences_of(arg) > 0
 
-    def occurrences_of(self, arg: string) -> u64:
+    func occurrences_of(self, arg: string) -> u64:
         """Returns the number of times given presence (boolean) option was
         given.
 
@@ -190,7 +190,7 @@ class Args:
 
         return u64(count)
 
-    def value_of(self, arg: string) -> string:
+    func value_of(self, arg: string) -> string:
         """Returns the value of given option or positional. Raises an error
         if given option does not take a value or if given positional can be
         given multiple times.
@@ -199,7 +199,7 @@ class Args:
 
         return self._single_values[arg]
 
-    def values_of(self, arg: string) -> [string]:
+    func values_of(self, arg: string) -> [string]:
         """Returns a list of values of given multiple occurrences option or
         positional.
 
@@ -207,7 +207,7 @@ class Args:
 
         return self._multiple_values[arg]
 
-    def subcommand(self) -> (string, Args):
+    func subcommand(self) -> (string, Args):
         """Returns a tuple of the subcommand and its arguments.
 
         """
@@ -244,7 +244,7 @@ class Parser:
     _subcommand: (string, Args)
     _positional_index: u64
 
-    def __init__(self,
+    func __init__(self,
                  name: string = None,
                  help: string = None,
                  version: string = None,
@@ -258,7 +258,7 @@ class Parser:
         self._subcommands = []
         self._add_builtin_options()
 
-    def add_option(self,
+    func add_option(self,
                    name: string,
                    short: string = None,
                    takes_value: bool = False,
@@ -294,7 +294,7 @@ class Parser:
                                      choices,
                                      help))
 
-    def add_positional(self,
+    func add_positional(self,
                        name: string,
                        value_type: ValueType = ValueType.Other,
                        multiple_occurrences: bool = False,
@@ -321,7 +321,7 @@ class Parser:
                                              choices,
                                              help))
 
-    def add_subcommand(self,
+    func add_subcommand(self,
                        name: string,
                        help: string = None) -> Parser:
         """Add a subcommand. Subcommands cannot be mixed with positionals.
@@ -339,7 +339,7 @@ class Parser:
 
         return parser
 
-    def parse(self,
+    func parse(self,
               argv: [string],
               exit_on_error: bool = True,
               allow_remaining: bool = False) -> Args:
@@ -385,7 +385,7 @@ class Parser:
             else:
                 raise
 
-    def _print_help(self):
+    func _print_help(self):
         prefix = self._format_synopsis_prefix()
         suffixes: [string] = []
 
@@ -418,7 +418,7 @@ class Parser:
         self._print_positionals_help()
         self._print_options_help()
 
-    def _format_synopsis_prefix(self) -> string:
+    func _format_synopsis_prefix(self) -> string:
         if self._parent is not None:
             prefix = self._parent._format_synopsis_prefix()
 
@@ -426,7 +426,7 @@ class Parser:
         else:
             return ""
 
-    def _print_subcommands_help(self):
+    func _print_subcommands_help(self):
         if self._subcommands == []:
             return
 
@@ -450,7 +450,7 @@ class Parser:
             name = _pad(name, longest_name - name_length)
             print(f"  {_style_subcommand(name)}    {help}")
 
-    def _print_options_help(self):
+    func _print_options_help(self):
         if self._options == []:
             return
 
@@ -479,10 +479,10 @@ class Parser:
             options = _pad(options, longest_options - options_length)
             print(f"  {_style_option(options)}    {help}")
 
-    def _options_names(self) -> [string]:
+    func _options_names(self) -> [string]:
         return [option.name for option in self._options]
 
-    def _collect_options(self) -> [_Option]:
+    func _collect_options(self) -> [_Option]:
         options = self._options
         option_names = self._options_names()
 
@@ -494,7 +494,7 @@ class Parser:
 
         return options
 
-    def _print_positionals_help(self):
+    func _print_positionals_help(self):
         if self._positionals == []:
             return
 
@@ -518,14 +518,14 @@ class Parser:
             name = _pad(name, longest_name - name_length)
             print(f"  {_style_positional(name)}    {help}")
 
-    def _find_option(self, name: string) -> _Option:
+    func _find_option(self, name: string) -> _Option:
         for option in self._options:
             if option.name == name or option.short == name:
                 return option
 
         return None
 
-    def _add_builtin_options(self):
+    func _add_builtin_options(self):
         self.add_option("--help",
                         short="-h",
                         help="Show this help.")
@@ -540,7 +540,7 @@ class Parser:
                             choices=["zsh"],
                             help="Print the shell command completion script.")
 
-    def _handle_builtin_options(self, option: _Option, reader: _Reader):
+    func _handle_builtin_options(self, option: _Option, reader: _Reader):
         match option.name:
             case "--help":
                 self._print_help()
@@ -558,7 +558,7 @@ class Parser:
 
                         raise SystemExitError()
 
-    def _parse_option(self, reader: _Reader, options_to_skip: [string]):
+    func _parse_option(self, reader: _Reader, options_to_skip: [string]):
         name = reader.get()
         option = self._find_option(name)
 
@@ -598,7 +598,7 @@ class Parser:
             else:
                 self._multiple_values[name].append(value)
 
-    def _read_option_value(self, option: _Option, reader: _Reader) -> string:
+    func _read_option_value(self, option: _Option, reader: _Reader) -> string:
         if not reader.available():
             raise ArgparseError(
                 f"value missing for option {_style_option(option.name)}")
@@ -614,7 +614,7 @@ class Parser:
 
         return value
 
-    def _find_subcommand(self, name: string) -> Parser:
+    func _find_subcommand(self, name: string) -> Parser:
         for subcommand in self._subcommands:
             if subcommand.name == name:
                 return subcommand
@@ -625,12 +625,12 @@ class Parser:
         raise ArgparseError(
             f"invalid subcommand {_style_error(name)}, choose from {choices}")
 
-    def _parse_subcommand(self, reader: _Reader) -> (string, Args):
+    func _parse_subcommand(self, reader: _Reader) -> (string, Args):
         subcommand = self._find_subcommand(reader.get())
 
         return (subcommand.name, subcommand._parse_inner(reader))
 
-    def _parse_positional(self, reader: _Reader) -> bool:
+    func _parse_positional(self, reader: _Reader) -> bool:
         if self._positional_index == len(self._positionals):
             return False
 
@@ -659,7 +659,7 @@ class Parser:
 
         return True
 
-    def _parse_inner(self, reader: _Reader) -> Args:
+    func _parse_inner(self, reader: _Reader) -> Args:
         self._options_count = {}
         self._single_values = {}
         self._multiple_values = {}
@@ -720,7 +720,7 @@ class Parser:
                     self._multiple_values,
                     self._subcommand)
 
-    def zsh_completion(self) -> string:
+    func zsh_completion(self) -> string:
         """Returns the Zsh command completion script.
 
         """
@@ -731,7 +731,7 @@ class Parser:
             functions += "\n\n"
 
         return (
-            f"#compdef {self.name}\n"
+            f"#compfunc {self.name}\n"
             "\n"
             f"_{self.name}() {{\n"
             "    local state line\n"
@@ -742,7 +742,7 @@ class Parser:
             f"{functions}"
             f"_{self.name} \"$@\"\n")
 
-    def _zsh_completion_options(self, arguments: [string]):
+    func _zsh_completion_options(self, arguments: [string]):
         for option in self._collect_options():
             if option.choices is not None:
                 choices = " ".join(option.choices)
@@ -763,7 +763,7 @@ class Parser:
 
             arguments.append(f"'{option.name}{help}{value}'")
 
-    def _zsh_completion_positionals(self, arguments: [string]):
+    func _zsh_completion_positionals(self, arguments: [string]):
         for positional in self._positionals:
             if positional.choices is not None:
                 choices = " ".join(positional.choices)
@@ -773,7 +773,7 @@ class Parser:
 
             arguments.append(f"':{positional.name}:{value}'")
 
-    def _zsh_completion_subcommands(self,
+    func _zsh_completion_subcommands(self,
                                     prefix: string,
                                     arguments: [string]) -> (string, [string]):
         case_string: string = None
@@ -827,7 +827,7 @@ class Parser:
 
         return case_string, functions
 
-    def _zsh_completion_inner(self, prefix: string) -> (string, string):
+    func _zsh_completion_inner(self, prefix: string) -> (string, string):
         arguments: [string] = []
 
         self._zsh_completion_options(arguments)
@@ -846,7 +846,7 @@ class Parser:
         return body, "\n\n".join(functions)
 
 @test
-def test_cat_and_monkey_subcommands():
+func test_cat_and_monkey_subcommands():
     parser = Parser("foo",
                     help="Does awesome things",
                     version="1.0.0")
@@ -894,7 +894,7 @@ def test_cat_and_monkey_subcommands():
     assert args.values_of("banana") == ["b1", "b2"]
 
 @test
-def test_add_option_after_positional():
+func test_add_option_after_positional():
     parser = Parser("bar")
     parser.add_positional("out")
 
@@ -906,7 +906,7 @@ def test_add_option_after_positional():
             "options must be added before subcommands and positionals")
 
 @test
-def test_add_multiple_occurrences_positional_before_positional():
+func test_add_multiple_occurrences_positional_before_positional():
     parser = Parser("bar")
     parser.add_positional("out", multiple_occurrences=True)
 
@@ -918,7 +918,7 @@ def test_add_multiple_occurrences_positional_before_positional():
             "options must be added before subcommands and positionals")
 
 @test
-def test_help():
+func test_help():
     parser = Parser("foo",
                     help="Does awesome things",
                     version="1.0.0")
@@ -949,7 +949,7 @@ def test_help():
         pass
 
 @test
-def test_version():
+func test_version():
     parser = Parser("foo", version="0.3.0")
 
     try:
@@ -959,7 +959,7 @@ def test_version():
         pass
 
 @test
-def test_no_version():
+func test_no_version():
     parser = Parser("foo")
 
     try:
@@ -969,7 +969,7 @@ def test_no_version():
         assert error.message == f"invalid option {RED}{BOLD}--version{RESET}"
 
 @test
-def test_is_present():
+func test_is_present():
     parser = Parser("bar")
     parser.add_option("--foo")
 
@@ -980,7 +980,7 @@ def test_is_present():
     assert not args.is_present("--foo")
 
 @test
-def test_is_present_bad_option():
+func test_is_present_bad_option():
     parser = Parser("bar")
 
     args = parser.parse(["bar"])
@@ -992,7 +992,7 @@ def test_is_present_bad_option():
         assert error.message == "--foo does not exist"
 
 @test
-def test_add_subcommand_after_positional():
+func test_add_subcommand_after_positional():
     parser = Parser("bar")
     parser.add_positional("foo")
 
@@ -1003,7 +1003,7 @@ def test_add_subcommand_after_positional():
         assert error.message == "positionals and subcommands cannot be mixed"
 
 @test
-def test_add_positional_after_subcommand():
+func test_add_positional_after_subcommand():
     parser = Parser("bar")
     parser.add_subcommand("cat")
 
@@ -1014,7 +1014,7 @@ def test_add_positional_after_subcommand():
         assert error.message == "positionals and subcommands cannot be mixed"
 
 @test
-def test_add_invalid_option():
+func test_add_invalid_option():
     parser = Parser("bar")
 
     try:
@@ -1024,7 +1024,7 @@ def test_add_invalid_option():
         assert error.message == "long options must start with '--'"
 
 @test
-def test_add_invalid_short_option_1():
+func test_add_invalid_short_option_1():
     parser = Parser("bar")
 
     try:
@@ -1035,7 +1035,7 @@ def test_add_invalid_short_option_1():
             "short options must be a '-' followed by any character except '-'")
 
 @test
-def test_add_invalid_short_option_2():
+func test_add_invalid_short_option_2():
     parser = Parser("bar")
 
     try:
@@ -1046,7 +1046,7 @@ def test_add_invalid_short_option_2():
             "short options must be a '-' followed by any character except '-'")
 
 @test
-def test_add_invalid_short_option_3():
+func test_add_invalid_short_option_3():
     parser = Parser("bar")
 
     try:
@@ -1057,7 +1057,7 @@ def test_add_invalid_short_option_3():
             "short options must be a '-' followed by any character except '-'")
 
 @test
-def test_invalid_suncommand():
+func test_invalid_suncommand():
     parser = Parser("bar")
     parser.add_subcommand("cat")
 
@@ -1070,7 +1070,7 @@ def test_invalid_suncommand():
             f"from {CYAN}cat{RESET}")
 
 @test
-def test_single_option_given_multiple_times():
+func test_single_option_given_multiple_times():
     parser = Parser("bar")
     parser.add_option("--cat")
 
@@ -1081,7 +1081,7 @@ def test_single_option_given_multiple_times():
         assert error.message == f"{YELLOW}--cat{RESET} can only be given once"
 
 @test
-def test_all_arguments_not_used():
+func test_all_arguments_not_used():
     parser = Parser("bar")
     parser.add_positional("cat")
 
@@ -1092,7 +1092,7 @@ def test_all_arguments_not_used():
         assert error.message == "too many arguments, remaining: 'ko'"
 
 @test
-def test_allow_remaining():
+func test_allow_remaining():
     parser = Parser("bar")
 
     args = parser.parse(["bar", "apa"], allow_remaining=True)
@@ -1100,7 +1100,7 @@ def test_allow_remaining():
     assert args.remaining == ["apa"]
 
 @test
-def test_allow_remaining_option_after_dash_dash():
+func test_allow_remaining_option_after_dash_dash():
     parser = Parser("bar")
     parser.add_option("--cat")
 
@@ -1110,7 +1110,7 @@ def test_allow_remaining_option_after_dash_dash():
     assert args.remaining == ["--cat", "apa"]
 
 @test
-def test_allow_remaining_with_subparser():
+func test_allow_remaining_with_subparser():
     parser = Parser("bar")
     cat = parser.add_subcommand("cat")
     cat.add_option("--foo")
@@ -1124,7 +1124,7 @@ def test_allow_remaining_with_subparser():
     assert args.remaining == []
 
 @test
-def test_multiple_occurrences_option_that_takes_value():
+func test_multiple_occurrences_option_that_takes_value():
     parser = Parser("bar")
     parser.add_option("--cat",
                       takes_value=True,
@@ -1133,7 +1133,7 @@ def test_multiple_occurrences_option_that_takes_value():
     assert args.values_of("--cat") == ["1", "2"]
 
 @test
-def test_multiple_occurrences_option_that_takes_value_missing_value():
+func test_multiple_occurrences_option_that_takes_value_missing_value():
     parser = Parser("bar")
     parser.add_option("--cat",
                       takes_value=True,
@@ -1146,7 +1146,7 @@ def test_multiple_occurrences_option_that_takes_value_missing_value():
         assert error.message == f"value missing for option {YELLOW}--cat{RESET}"
 
 @test
-def test_multiple_occurrences_option_default_value():
+func test_multiple_occurrences_option_default_value():
     parser = Parser("bar")
 
     try:
@@ -1160,7 +1160,7 @@ def test_multiple_occurrences_option_default_value():
             "multiple occurrences options cannot have a default value")
 
 @test
-def test_option_default_value_not_in_choices():
+func test_option_default_value_not_in_choices():
     parser = Parser("bar")
 
     try:
@@ -1174,7 +1174,7 @@ def test_option_default_value_not_in_choices():
             f"default value {RED}{BOLD}yes{RESET} must be {YELLOW}no{RESET}")
 
 @test
-def test_option_missing_value():
+func test_option_missing_value():
     parser = Parser()
     parser.add_option("--aaa", short="-a", takes_value=True)
     parser.add_option("--bbb", short="-b")
@@ -1186,7 +1186,7 @@ def test_option_missing_value():
         assert error.message == f"value missing for option {YELLOW}--aaa{RESET}"
 
 @test
-def test_single_occurrence_option_that_takes_value_given_twice():
+func test_single_occurrence_option_that_takes_value_given_twice():
     parser = Parser("bar")
     parser.add_option("--cat", takes_value=True)
 
@@ -1197,7 +1197,7 @@ def test_single_occurrence_option_that_takes_value_given_twice():
         assert error.message == f"{YELLOW}--cat{RESET} can only be given once"
 
 @test
-def test_missing_positional():
+func test_missing_positional():
     parser = Parser("bar")
     parser.add_positional("cat")
 
@@ -1208,7 +1208,7 @@ def test_missing_positional():
         assert error.message == f"positional {CYAN}cat{RESET} missing"
 
 @test
-def test_only_last_positional_can_occur_multiple_times():
+func test_only_last_positional_can_occur_multiple_times():
     parser = Parser("bar")
     parser.add_positional("cat", multiple_occurrences=True)
 
@@ -1219,13 +1219,13 @@ def test_only_last_positional_can_occur_multiple_times():
         assert error.message == "only the last posistional can occur multiple times"
 
 @test
-def test_no_name():
+func test_no_name():
     parser = Parser()
     parser.parse(["bar"])
     assert parser.name == "bar"
 
 @test
-def test_exit_on_error():
+func test_exit_on_error():
     parser = Parser()
 
     try:
@@ -1238,7 +1238,7 @@ def test_exit_on_error():
             f"{RED}{BOLD}--version{RESET}\")")
 
 @test
-def test_bad_option_single_dash():
+func test_bad_option_single_dash():
     parser = Parser()
 
     try:
@@ -1248,7 +1248,7 @@ def test_bad_option_single_dash():
         assert error.message == "too many arguments, remaining: '-'"
 
 @test
-def test_option_choices():
+func test_option_choices():
     parser = Parser("bar")
     parser.add_option("--cat",
                       takes_value=True,
@@ -1270,7 +1270,7 @@ def test_option_choices():
             f"{YELLOW}b{RESET}")
 
 @test
-def test_positional_choices():
+func test_positional_choices():
     parser = Parser("bar")
     parser.add_positional("cat", choices=["a", "b"])
 
@@ -1290,7 +1290,7 @@ def test_positional_choices():
             f"{CYAN}b{RESET}")
 
 @test
-def test_end_of_options():
+func test_end_of_options():
     parser = Parser()
     parser.add_option("--cat")
     foo = parser.add_subcommand("foo")
@@ -1347,7 +1347,7 @@ def test_end_of_options():
     assert not args.is_present("--cat")
 
 @test
-def test_positional_name_must_not_start_with_dash():
+func test_positional_name_must_not_start_with_dash():
     parser = Parser()
 
     try:
@@ -1357,7 +1357,7 @@ def test_positional_name_must_not_start_with_dash():
         assert error.message == "positionals must not start with '-'"
 
 @test
-def test_subcommand_name_must_not_start_with_dash():
+func test_subcommand_name_must_not_start_with_dash():
     parser = Parser()
 
     try:
@@ -1367,7 +1367,7 @@ def test_subcommand_name_must_not_start_with_dash():
         assert error.message == "subcommands must not start with '-'"
 
 @test
-def test_parent_options_in_subcommand():
+func test_parent_options_in_subcommand():
     parser = Parser()
     parser.add_option("--cat", multiple_occurrences=True)
     foo = parser.add_subcommand("foo")
@@ -1382,7 +1382,7 @@ def test_parent_options_in_subcommand():
     assert args.occurrences_of("--cat") == 2
 
 @test
-def test_skip_parent_option_with_same_name_as_in_subcommand():
+func test_skip_parent_option_with_same_name_as_in_subcommand():
     parser = Parser()
     parser.add_option("--foo", short="-f")
     bar = parser.add_subcommand("bar")
@@ -1406,9 +1406,9 @@ def test_skip_parent_option_with_same_name_as_in_subcommand():
         assert error.message == f"invalid option {RED}{BOLD}-f{RESET}"
 
 @test
-def test_zsh_completion_empty_parser():
+func test_zsh_completion_empty_parser():
     assert Parser("foobar").zsh_completion() == (
-        "#compdef foobar\n"
+        "#compfunc foobar\n"
         "\n"
         "_foobar() {\n"
         "    local state line\n"
@@ -1423,9 +1423,9 @@ def test_zsh_completion_empty_parser():
         "_foobar \"$@\"\n")
 
 @test
-def test_zsh_completion_version_parser():
+func test_zsh_completion_version_parser():
     assert Parser("foobar", version="1.0.0").zsh_completion() == (
-        "#compdef foobar\n"
+        "#compfunc foobar\n"
         "\n"
         "_foobar() {\n"
         "    local state line\n"
@@ -1441,7 +1441,7 @@ def test_zsh_completion_version_parser():
         "_foobar \"$@\"\n")
 
 @test
-def test_zsh_completion_options_and_positionals():
+func test_zsh_completion_options_and_positionals():
     parser = Parser("foo")
     parser.add_option("--sound",
                       short="-s",
@@ -1464,7 +1464,7 @@ def test_zsh_completion_options_and_positionals():
     parser.add_positional("ko", choices=["a", "bb"])
 
     assert parser.zsh_completion() == (
-        "#compdef foo\n"
+        "#compfunc foo\n"
         "\n"
         "_foo() {\n"
         "    local state line\n"
@@ -1488,7 +1488,7 @@ def test_zsh_completion_options_and_positionals():
         "_foo \"$@\"\n")
 
 @test
-def test_zsh_completion_subcommands():
+func test_zsh_completion_subcommands():
     parser = Parser("kalle", version="1.2.3")
 
     foo = parser.add_subcommand("foo")
@@ -1498,7 +1498,7 @@ def test_zsh_completion_subcommands():
     bar.add_subcommand("fie", help="Hi fie!")
 
     assert parser.zsh_completion() == (
-        "#compdef kalle\n"
+        "#compfunc kalle\n"
         "\n"
         "_kalle() {\n"
         "    local state line\n"
@@ -1609,7 +1609,7 @@ def test_zsh_completion_subcommands():
         "_kalle \"$@\"\n")
 
 @test
-def test_shell_completion_zsh():
+func test_shell_completion_zsh():
     parser = Parser("foo")
 
     try:
@@ -1619,7 +1619,7 @@ def test_shell_completion_zsh():
         pass
 
 @test
-def test_shell_completion_bad_value():
+func test_shell_completion_bad_value():
     parser = Parser("foo")
 
     try:

@@ -1,6 +1,6 @@
 from argparse import Parser
 
-def main(argv: [string]):
+func main(argv: [string]):
     parser = Parser(help="A subcommand example.")
 
     parser.add_option("--verbose",

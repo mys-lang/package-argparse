@@ -16,7 +16,7 @@ Examples
 
    from argparse import Parser
 
-   def main(argv: [string]):
+   func main(argv: [string]):
        parser = Parser("basic",
                        version=__version__,
                        help="A basic example.")
