@@ -12,25 +12,13 @@ Project: https://github.com/mys-lang/package-argparse
 Examples
 ========
 
-.. code-block:: mys
+.. mysexample:: examples/basic
+   :run_args: --verbose foobar.txt
 
-   from argparse import Parser
+Examples
+========
 
-   func main(argv: [string]):
-       parser = Parser("basic",
-                       version=__version__,
-                       help="A basic example.")
-       parser.add_option("--verbose",
-                         short="-v",
-                         multiple_occurrences=True,
-                         help="Verbose output.")
-       parser.add_positional("file",
-                             help="A file.")
-
-       args = parser.parse(argv)
-
-       print("File:                ", args.value_of("file"))
-       print("Number of --verbose: ", args.occurrences_of("--verbose"))
+.. mysfilecontent:: examples/basic/src/main.mys
 
 Build and run:
 
