@@ -12,12 +12,6 @@ Project: https://github.com/mys-lang/package-argparse
 Examples
 ========
 
-.. mysexample:: examples/basic
-   :run_args: --verbose foobar.txt
-
-Examples
-========
-
 .. mysfilecontent:: examples/basic/src/main.mys
 
 Build and run:
