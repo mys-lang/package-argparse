@@ -845,8 +845,7 @@ class Parser:
 
         return body, "\n\n".join(functions)
 
-@test
-func test_cat_and_monkey_subcommands():
+test cat_and_monkey_subcommands():
     parser = Parser("foo",
                     help="Does awesome things",
                     version="1.0.0")
@@ -893,8 +892,7 @@ func test_cat_and_monkey_subcommands():
     assert args.value_of("--height") == "75"
     assert args.values_of("banana") == ["b1", "b2"]
 
-@test
-func test_add_option_after_positional():
+test add_option_after_positional():
     parser = Parser("bar")
     parser.add_positional("out")
 
@@ -905,8 +903,7 @@ func test_add_option_after_positional():
         assert error.message == (
             "options must be added before subcommands and positionals")
 
-@test
-func test_add_multiple_occurrences_positional_before_positional():
+test add_multiple_occurrences_positional_before_positional():
     parser = Parser("bar")
     parser.add_positional("out", multiple_occurrences=True)
 
@@ -917,8 +914,7 @@ func test_add_multiple_occurrences_positional_before_positional():
         assert error.message == (
             "options must be added before subcommands and positionals")
 
-@test
-func test_help():
+test help():
     parser = Parser("foo",
                     help="Does awesome things",
                     version="1.0.0")
@@ -948,8 +944,7 @@ func test_help():
     except SystemExitError:
         pass
 
-@test
-func test_version():
+test version():
     parser = Parser("foo", version="0.3.0")
 
     try:
@@ -958,8 +953,7 @@ func test_version():
     except SystemExitError:
         pass
 
-@test
-func test_no_version():
+test no_version():
     parser = Parser("foo")
 
     try:
@@ -968,8 +962,7 @@ func test_no_version():
     except ArgparseError as error:
         assert error.message == f"invalid option {RED}{BOLD}--version{RESET}"
 
-@test
-func test_is_present():
+test is_present():
     parser = Parser("bar")
     parser.add_option("--foo")
 
@@ -979,8 +972,7 @@ func test_is_present():
     args = parser.parse(["bar"])
     assert not args.is_present("--foo")
 
-@test
-func test_is_present_bad_option():
+test is_present_bad_option():
     parser = Parser("bar")
 
     args = parser.parse(["bar"])
@@ -991,8 +983,7 @@ func test_is_present_bad_option():
     except ArgparseError as error:
         assert error.message == "--foo does not exist"
 
-@test
-func test_add_subcommand_after_positional():
+test add_subcommand_after_positional():
     parser = Parser("bar")
     parser.add_positional("foo")
 
@@ -1002,8 +993,7 @@ func test_add_subcommand_after_positional():
     except ArgparseError as error:
         assert error.message == "positionals and subcommands cannot be mixed"
 
-@test
-func test_add_positional_after_subcommand():
+test add_positional_after_subcommand():
     parser = Parser("bar")
     parser.add_subcommand("cat")
 
@@ -1013,8 +1003,7 @@ func test_add_positional_after_subcommand():
     except ArgparseError as error:
         assert error.message == "positionals and subcommands cannot be mixed"
 
-@test
-func test_add_invalid_option():
+test add_invalid_option():
     parser = Parser("bar")
 
     try:
@@ -1023,8 +1012,7 @@ func test_add_invalid_option():
     except ArgparseError as error:
         assert error.message == "long options must start with '--'"
 
-@test
-func test_add_invalid_short_option_1():
+test add_invalid_short_option_1():
     parser = Parser("bar")
 
     try:
@@ -1034,8 +1022,7 @@ func test_add_invalid_short_option_1():
         assert error.message == (
             "short options must be a '-' followed by any character except '-'")
 
-@test
-func test_add_invalid_short_option_2():
+test add_invalid_short_option_2():
     parser = Parser("bar")
 
     try:
@@ -1045,8 +1032,7 @@ func test_add_invalid_short_option_2():
         assert error.message == (
             "short options must be a '-' followed by any character except '-'")
 
-@test
-func test_add_invalid_short_option_3():
+test add_invalid_short_option_3():
     parser = Parser("bar")
 
     try:
@@ -1056,8 +1042,7 @@ func test_add_invalid_short_option_3():
         assert error.message == (
             "short options must be a '-' followed by any character except '-'")
 
-@test
-func test_invalid_suncommand():
+test invalid_suncommand():
     parser = Parser("bar")
     parser.add_subcommand("cat")
 
@@ -1069,8 +1054,7 @@ func test_invalid_suncommand():
             f"invalid subcommand {RED}{BOLD}foo{RESET}, choose "
             f"from {CYAN}cat{RESET}")
 
-@test
-func test_single_option_given_multiple_times():
+test single_option_given_multiple_times():
     parser = Parser("bar")
     parser.add_option("--cat")
 
@@ -1080,8 +1064,7 @@ func test_single_option_given_multiple_times():
     except ArgparseError as error:
         assert error.message == f"{YELLOW}--cat{RESET} can only be given once"
 
-@test
-func test_all_arguments_not_used():
+test all_arguments_not_used():
     parser = Parser("bar")
     parser.add_positional("cat")
 
@@ -1091,16 +1074,14 @@ func test_all_arguments_not_used():
     except ArgparseError as error:
         assert error.message == "too many arguments, remaining: 'ko'"
 
-@test
-func test_allow_remaining():
+test allow_remaining():
     parser = Parser("bar")
 
     args = parser.parse(["bar", "apa"], allow_remaining=True)
 
     assert args.remaining == ["apa"]
 
-@test
-func test_allow_remaining_option_after_dash_dash():
+test allow_remaining_option_after_dash_dash():
     parser = Parser("bar")
     parser.add_option("--cat")
 
@@ -1109,8 +1090,7 @@ func test_allow_remaining_option_after_dash_dash():
     assert not args.is_present("--cat")
     assert args.remaining == ["--cat", "apa"]
 
-@test
-func test_allow_remaining_with_subparser():
+test allow_remaining_with_subparser():
     parser = Parser("bar")
     cat = parser.add_subcommand("cat")
     cat.add_option("--foo")
@@ -1123,8 +1103,7 @@ func test_allow_remaining_with_subparser():
     assert name == "cat"
     assert args.remaining == []
 
-@test
-func test_multiple_occurrences_option_that_takes_value():
+test multiple_occurrences_option_that_takes_value():
     parser = Parser("bar")
     parser.add_option("--cat",
                       takes_value=True,
@@ -1132,8 +1111,7 @@ func test_multiple_occurrences_option_that_takes_value():
     args = parser.parse(["bar", "--cat", "1", "--cat", "2"])
     assert args.values_of("--cat") == ["1", "2"]
 
-@test
-func test_multiple_occurrences_option_that_takes_value_missing_value():
+test multiple_occurrences_option_that_takes_value_missing_value():
     parser = Parser("bar")
     parser.add_option("--cat",
                       takes_value=True,
@@ -1145,8 +1123,7 @@ func test_multiple_occurrences_option_that_takes_value_missing_value():
     except ArgparseError as error:
         assert error.message == f"value missing for option {YELLOW}--cat{RESET}"
 
-@test
-func test_multiple_occurrences_option_default_value():
+test multiple_occurrences_option_default_value():
     parser = Parser("bar")
 
     try:
@@ -1159,8 +1136,7 @@ func test_multiple_occurrences_option_default_value():
         assert error.message == (
             "multiple occurrences options cannot have a default value")
 
-@test
-func test_option_default_value_not_in_choices():
+test option_default_value_not_in_choices():
     parser = Parser("bar")
 
     try:
@@ -1173,8 +1149,7 @@ func test_option_default_value_not_in_choices():
         assert error.message == (
             f"default value {RED}{BOLD}yes{RESET} must be {YELLOW}no{RESET}")
 
-@test
-func test_option_missing_value():
+test option_missing_value():
     parser = Parser()
     parser.add_option("--aaa", short="-a", takes_value=True)
     parser.add_option("--bbb", short="-b")
@@ -1185,8 +1160,7 @@ func test_option_missing_value():
     except ArgparseError as error:
         assert error.message == f"value missing for option {YELLOW}--aaa{RESET}"
 
-@test
-func test_single_occurrence_option_that_takes_value_given_twice():
+test single_occurrence_option_that_takes_value_given_twice():
     parser = Parser("bar")
     parser.add_option("--cat", takes_value=True)
 
@@ -1196,8 +1170,7 @@ func test_single_occurrence_option_that_takes_value_given_twice():
     except ArgparseError as error:
         assert error.message == f"{YELLOW}--cat{RESET} can only be given once"
 
-@test
-func test_missing_positional():
+test missing_positional():
     parser = Parser("bar")
     parser.add_positional("cat")
 
@@ -1207,8 +1180,7 @@ func test_missing_positional():
     except ArgparseError as error:
         assert error.message == f"positional {CYAN}cat{RESET} missing"
 
-@test
-func test_only_last_positional_can_occur_multiple_times():
+test only_last_positional_can_occur_multiple_times():
     parser = Parser("bar")
     parser.add_positional("cat", multiple_occurrences=True)
 
@@ -1218,14 +1190,12 @@ func test_only_last_positional_can_occur_multiple_times():
     except ArgparseError as error:
         assert error.message == "only the last posistional can occur multiple times"
 
-@test
-func test_no_name():
+test no_name():
     parser = Parser()
     parser.parse(["bar"])
     assert parser.name == "bar"
 
-@test
-func test_exit_on_error():
+test exit_on_error():
     parser = Parser()
 
     try:
@@ -1237,8 +1207,7 @@ func test_exit_on_error():
             f"\"{RED}{BOLD}error{RESET}: invalid option "
             f"{RED}{BOLD}--version{RESET}\")")
 
-@test
-func test_bad_option_single_dash():
+test bad_option_single_dash():
     parser = Parser()
 
     try:
@@ -1247,8 +1216,7 @@ func test_bad_option_single_dash():
     except ArgparseError as error:
         assert error.message == "too many arguments, remaining: '-'"
 
-@test
-func test_option_choices():
+test option_choices():
     parser = Parser("bar")
     parser.add_option("--cat",
                       takes_value=True,
@@ -1269,8 +1237,7 @@ func test_option_choices():
             f"{YELLOW}--cat{RESET}, choose from {YELLOW}a{RESET} and "
             f"{YELLOW}b{RESET}")
 
-@test
-func test_positional_choices():
+test positional_choices():
     parser = Parser("bar")
     parser.add_positional("cat", choices=["a", "b"])
 
@@ -1289,8 +1256,7 @@ func test_positional_choices():
             f"{CYAN}cat{RESET}, choose from {CYAN}a{RESET} and "
             f"{CYAN}b{RESET}")
 
-@test
-func test_end_of_options():
+test end_of_options():
     parser = Parser()
     parser.add_option("--cat")
     foo = parser.add_subcommand("foo")
@@ -1346,8 +1312,7 @@ func test_end_of_options():
     assert args.value_of("out") == "--"
     assert not args.is_present("--cat")
 
-@test
-func test_positional_name_must_not_start_with_dash():
+test positional_name_must_not_start_with_dash():
     parser = Parser()
 
     try:
@@ -1356,8 +1321,7 @@ func test_positional_name_must_not_start_with_dash():
     except ArgparseError as error:
         assert error.message == "positionals must not start with '-'"
 
-@test
-func test_subcommand_name_must_not_start_with_dash():
+test subcommand_name_must_not_start_with_dash():
     parser = Parser()
 
     try:
@@ -1366,8 +1330,7 @@ func test_subcommand_name_must_not_start_with_dash():
     except ArgparseError as error:
         assert error.message == "subcommands must not start with '-'"
 
-@test
-func test_parent_options_in_subcommand():
+test parent_options_in_subcommand():
     parser = Parser()
     parser.add_option("--cat", multiple_occurrences=True)
     foo = parser.add_subcommand("foo")
@@ -1381,8 +1344,7 @@ func test_parent_options_in_subcommand():
     args = parser.parse(["bar", "--cat", "foo", "--cat"])
     assert args.occurrences_of("--cat") == 2
 
-@test
-func test_skip_parent_option_with_same_name_as_in_subcommand():
+test skip_parent_option_with_same_name_as_in_subcommand():
     parser = Parser()
     parser.add_option("--foo", short="-f")
     bar = parser.add_subcommand("bar")
@@ -1405,8 +1367,7 @@ func test_skip_parent_option_with_same_name_as_in_subcommand():
     except ArgparseError as error:
         assert error.message == f"invalid option {RED}{BOLD}-f{RESET}"
 
-@test
-func test_zsh_completion_empty_parser():
+test zsh_completion_empty_parser():
     assert Parser("foobar").zsh_completion() == (
         "#compfunc foobar\n"
         "\n"
@@ -1422,8 +1383,7 @@ func test_zsh_completion_empty_parser():
         "\n"
         "_foobar \"$@\"\n")
 
-@test
-func test_zsh_completion_version_parser():
+test zsh_completion_version_parser():
     assert Parser("foobar", version="1.0.0").zsh_completion() == (
         "#compfunc foobar\n"
         "\n"
@@ -1440,8 +1400,7 @@ func test_zsh_completion_version_parser():
         "\n"
         "_foobar \"$@\"\n")
 
-@test
-func test_zsh_completion_options_and_positionals():
+test zsh_completion_options_and_positionals():
     parser = Parser("foo")
     parser.add_option("--sound",
                       short="-s",
@@ -1487,8 +1446,7 @@ func test_zsh_completion_options_and_positionals():
         "\n"
         "_foo \"$@\"\n")
 
-@test
-func test_zsh_completion_subcommands():
+test zsh_completion_subcommands():
     parser = Parser("kalle", version="1.2.3")
 
     foo = parser.add_subcommand("foo")
@@ -1608,8 +1566,7 @@ func test_zsh_completion_subcommands():
         "\n"
         "_kalle \"$@\"\n")
 
-@test
-func test_shell_completion_zsh():
+test shell_completion_zsh():
     parser = Parser("foo")
 
     try:
@@ -1618,8 +1575,7 @@ func test_shell_completion_zsh():
     except SystemExitError:
         pass
 
-@test
-func test_shell_completion_bad_value():
+test shell_completion_bad_value():
     parser = Parser("foo")
 
     try:
