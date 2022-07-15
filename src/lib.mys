@@ -120,14 +120,14 @@ class _Positional:
 
 class _Reader:
     _argv: [string]
-    _pos: u64
+    _pos: i64
 
-    func __init__(self, argv: [string], pos: u64):
+    func __init__(self, argv: [string], pos: i64):
         self._argv = argv
         self._pos = pos
 
     func available(self) -> bool:
-        return self._pos < len(self._argv)
+        return self._pos < self._argv.length()
 
     func get(self) -> string:
         arg = self._argv[self._pos]
@@ -177,7 +177,7 @@ class Args:
 
         return self.occurrences_of(arg) > 0
 
-    func occurrences_of(self, arg: string) -> u64:
+    func occurrences_of(self, arg: string) -> i64:
         """Returns the number of times given presence (boolean) option was
         given.
 
@@ -188,7 +188,7 @@ class Args:
         if count == -1:
             raise ArgparseError(f"{arg} does not exist")
 
-        return u64(count)
+        return i64(count)
 
     func value_of(self, arg: string) -> string:
         """Returns the value of given option or positional. Raises an error
@@ -241,7 +241,7 @@ class Parser:
     _single_values: {string: string}
     _multiple_values: {string: [string]}
     _subcommand: (string, Args)
-    _positional_index: u64
+    _positional_index: i64
 
     func __init__(self,
                  name: string = None,
@@ -279,7 +279,7 @@ class Parser:
             raise ArgparseError("long options must start with '--'")
 
         if short is not None:
-            if len(short) != 2 or short[0] != '-' or short[1] == '-':
+            if short.length() != 2 or short[0] != '-' or short[1] == '-':
                 raise ArgparseError(
                     "short options must be a '-' followed by any character "
                     "except '-'")
@@ -353,7 +353,7 @@ class Parser:
 
         """
 
-        if self.name is None and len(argv) > 0:
+        if self.name is None and argv.length() > 0:
             self.name = argv[0]
 
         reader = _Reader(argv, pos=1)
@@ -441,7 +441,7 @@ class Parser:
                 help = subcommand.help
 
             name = subcommand.name
-            name_length = i64(len(name))
+            name_length = name.length()
             longest_name = max(name_length, longest_name)
             entries.append((name, name_length, help))
 
@@ -470,7 +470,7 @@ class Parser:
                 short = ""
 
             options = short + option.name
-            options_length = i64(len(options))
+            options_length = options.length()
             longest_options = max(options_length, longest_options)
             entries.append((options, options_length, help))
 
@@ -509,7 +509,7 @@ class Parser:
                 help = positional.help
 
             name = positional.name
-            name_length = i64(len(name))
+            name_length = name.length()
             longest_name = max(name_length, longest_name)
             entries.append((name, name_length, help))
 
@@ -630,7 +630,7 @@ class Parser:
         return (subcommand.name, subcommand._parse_inner(reader))
 
     func _parse_positional(self, reader: _Reader) -> bool:
-        if self._positional_index == len(self._positionals):
+        if self._positional_index == self._positionals.length():
             return False
 
         positional = self._positionals[self._positional_index]
@@ -691,7 +691,7 @@ class Parser:
                     elif not self._parse_positional(reader):
                         break
                 else:
-                    if not argument.starts_with("--") and len(argument) > 2:
+                    if not argument.starts_with("--") and argument.length() > 2:
                         reader.get()
                         reader.insert([f"-{short}" for short in slice(argument, 1)])
 
@@ -708,7 +708,7 @@ class Parser:
                                     for subcommand in self._subcommands])
 
                 raise ArgparseError(f"subcommand missing, choose from {choices}")
-        elif self._positional_index < len(self._positionals):
+        elif self._positional_index < self._positionals.length():
             positional = self._positionals[self._positional_index]
 
             raise ArgparseError(
