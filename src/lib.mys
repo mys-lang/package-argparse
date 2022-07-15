@@ -214,8 +214,7 @@ class Args:
 
         return self._subcommand
 
-@enum
-class ValueType:
+enum ValueType:
     """Value type for completion scripts.
 
     """
