@@ -66,9 +66,9 @@ class _Option:
                  short: string,
                  takes_value: bool,
                  value_type: ValueType,
-                 default: string,
+                 default: string?,
                  multiple_occurrences: bool,
-                 choices: [string],
+                 choices: [string]?,
                  help: string):
         if multiple_occurrences and default is not None:
             raise ArgparseError(
@@ -230,10 +230,10 @@ class Parser:
 
     """
 
-    name: string
-    help: string
-    version: string
-    _parent: Parser  # ToDo: weak[Parser]
+    name: string?
+    help: string?
+    version: string?
+    _parent: Parser?
     _options: [_Option]
     _positionals: [_Positional]
     _subcommands: [Parser]
@@ -244,10 +244,10 @@ class Parser:
     _positional_index: i64
 
     func __init__(self,
-                 name: string = None,
-                 help: string = None,
-                 version: string = None,
-                 parent: Parser = None):
+                 name: string? = None,
+                 help: string? = None,
+                 version: string? = None,
+                 parent: Parser? = None):
         self.name = name
         self.help = help
         self.version = version
@@ -259,13 +259,13 @@ class Parser:
 
     func add_option(self,
                    name: string,
-                   short: string = None,
+                   short: string? = None,
                    takes_value: bool = False,
                    value_type: ValueType = ValueType.Other,
-                   default: string = None,
+                   default: string? = None,
                    multiple_occurrences: bool = False,
-                   choices: [string] = None,
-                   help: string = None):
+                   choices: [string]? = None,
+                   help: string? = None):
         """Add an option. Options must be added before subcommands and
         positionals.
 
@@ -297,8 +297,8 @@ class Parser:
                        name: string,
                        value_type: ValueType = ValueType.Other,
                        multiple_occurrences: bool = False,
-                       choices: [string] = None,
-                       help: string = None):
+                       choices: [string]? = None,
+                       help: string? = None):
         """Add a positional. Positionals cannot be mixed with subcommands.
 
         """
@@ -322,7 +322,7 @@ class Parser:
 
     func add_subcommand(self,
                        name: string,
-                       help: string = None) -> Parser:
+                       help: string? = None) -> Parser:
         """Add a subcommand. Subcommands cannot be mixed with positionals.
 
         """
