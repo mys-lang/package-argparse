@@ -233,7 +233,7 @@ class Parser:
     name: string?
     help: string?
     version: string?
-    _parent: Parser?
+    _parent: weak[Parser?]
     _options: [_Option]
     _positionals: [_Positional]
     _subcommands: [Parser]
