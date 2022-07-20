@@ -155,14 +155,14 @@ class Args:
     _options: {string: i64}
     _single_values: {string: string}
     _multiple_values: {string: [string]}
-    _subcommand: (string, Args)
+    _subcommand: (string, Args)?
     remaining: [string]
 
     func __init__(self,
                  options: {string: i64},
                  single_values: {string: string},
                  multiple_values: {string: [string]},
-                 subcommand: (string, Args)):
+                 subcommand: (string, Args)?):
         self._options = options
         self._single_values = single_values
         self._multiple_values = multiple_values
@@ -211,6 +211,9 @@ class Args:
         """Returns a tuple of the subcommand and its arguments.
 
         """
+
+        if self._subcommand is None:
+            raise ArgparseError("No subcommand given.")
 
         return self._subcommand
 
@@ -1584,3 +1587,13 @@ test shell_completion_bad_value():
         assert error.message == (
             f"invalid value {RED}{BOLD}bad{RESET} to option "
             f"{YELLOW}--shell-completion{RESET}, choose from {YELLOW}zsh{RESET}")
+
+test get_subcommand_without_add():
+    parser = Parser()
+    args = parser.parse(["bar"])
+
+    try:
+        args.subcommand()
+        assert False
+    except ArgparseError as error:
+        assert error.message == "No subcommand given."
