@@ -1041,7 +1041,7 @@ test add_invalid_short_option_3():
         assert error.message == (
             "short options must be a '-' followed by any character except '-'")
 
-test invalid_suncommand():
+test invalid_subcommand():
     parser = Parser("bar")
     parser.add_subcommand("cat")
 
