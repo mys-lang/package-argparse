@@ -213,7 +213,7 @@ class Args:
         """
 
         if self._subcommand is None:
-            raise ArgparseError("No subcommand given.")
+            raise ArgparseError("No subcommand added.")
 
         return self._subcommand
 
@@ -1596,4 +1596,4 @@ test get_subcommand_without_add():
         args.subcommand()
         assert False
     except ArgparseError as error:
-        assert error.message == "No subcommand given."
+        assert error.message == "No subcommand added."
