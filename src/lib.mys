@@ -53,23 +53,23 @@ class ArgparseError(Error):
 
 class _Option:
     name: string
-    short: string
+    short: string?
     takes_value: bool
     value_type: ValueType
     default: string
     multiple_occurrences: bool
-    choices: [string]
-    help: string
+    choices: [string]?
+    help: string?
 
     func __init__(self,
                  name: string,
-                 short: string,
+                 short: string?,
                  takes_value: bool,
                  value_type: ValueType,
                  default: string?,
                  multiple_occurrences: bool,
                  choices: [string]?,
-                 help: string):
+                 help: string?):
         if multiple_occurrences and default is not None:
             raise ArgparseError(
                 "multiple occurrences options cannot have a default value")
@@ -112,8 +112,8 @@ class _Positional:
     name: string
     value_type: ValueType
     multiple_occurrences: bool
-    choices: [string]
-    help: string
+    choices: [string]?
+    help: string?
 
     func is_single_value(self) -> bool:
         return not self.multiple_occurrences
@@ -241,9 +241,9 @@ class Parser:
     _positionals: [_Positional]
     _subcommands: [Parser]
     _options_count: {string: i64}
-    _single_values: {string: string}
+    _single_values: {string: string?}
     _multiple_values: {string: [string]}
-    _subcommand: (string, Args)
+    _subcommand: (string, Args)?
     _positional_index: i64
 
     func __init__(self,
@@ -520,7 +520,7 @@ class Parser:
             name = _pad(name, longest_name - name_length)
             print(f"  {_style_positional(name)}    {help}")
 
-    func _find_option(self, name: string) -> _Option:
+    func _find_option(self, name: string) -> _Option?:
         for option in self._options:
             if option.name == name or option.short == name:
                 return option
@@ -718,7 +718,8 @@ class Parser:
                 f"positional {_style_positional(positional.name)} missing")
 
         return Args(self._options_count,
-                    self._single_values,
+                    # ToDo: Comprehension should not be needed.
+                    {k: v for k, v in self._single_values},
                     self._multiple_values,
                     self._subcommand)
 
@@ -777,8 +778,8 @@ class Parser:
 
     func _zsh_completion_subcommands(self,
                                     prefix: string,
-                                    arguments: [string]) -> (string, [string]):
-        case_string: string = None
+                                    arguments: [string]) -> (string?, [string]):
+        case_string: string? = None
         functions: [string] = []
 
         if self._subcommands != []:
@@ -791,7 +792,7 @@ class Parser:
                 if subcommand.help is not None:
                     help = subcommand.help
                 else:
-                    help = ""
+                    help: string? = ""
 
                 subcommands.append(f"'{subcommand.name}:{help}'")
                 case_body, case_functions = subcommand._zsh_completion_inner(
