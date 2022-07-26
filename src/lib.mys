@@ -183,12 +183,11 @@ class Args:
 
         """
 
-        count = self._options.get(arg, -1)
 
-        if count == -1:
+        if arg not in self._options:
             raise ArgparseError(f"{arg} does not exist")
 
-        return i64(count)
+        return i64(self._options[arg])
 
     func value_of(self, arg: string) -> string:
         """Returns the value of given option or positional. Raises an error
@@ -241,7 +240,7 @@ class Parser:
     _positionals: [_Positional]
     _subcommands: [Parser]
     _options_count: {string: i64}
-    _single_values: {string: string?}
+    _single_values: {string: string}
     _multiple_values: {string: [string]}
     _subcommand: (string, Args)?
     _positional_index: i64
@@ -592,7 +591,7 @@ class Parser:
             value = self._read_option_value(option, reader)
 
             if option.is_single_value():
-                if self._single_values[name] is not None:
+                if self._single_values.get(name, None) is not None:
                     raise ArgparseError(
                         f"{_style_option(name)} can only be given once")
 
@@ -672,8 +671,6 @@ class Parser:
         for option in self._options:
             if option.is_flag():
                 self._options_count[option.name] = 0
-            elif option.is_single_value():
-                self._single_values[option.name] = None
             elif option.is_multiple_value():
                 self._multiple_values[option.name] = []
 
@@ -702,7 +699,7 @@ class Parser:
 
         for option in self._options:
             if option.is_single_value():
-                if self._single_values[option.name] is None:
+                if self._single_values.get(option.name, None) is None:
                     self._single_values[option.name] = option.default
 
         if self._subcommands != []:
@@ -718,8 +715,7 @@ class Parser:
                 f"positional {_style_positional(positional.name)} missing")
 
         return Args(self._options_count,
-                    # ToDo: Comprehension should not be needed.
-                    {k: v for k, v in self._single_values},
+                    self._single_values,
                     self._multiple_values,
                     self._subcommand)
 
